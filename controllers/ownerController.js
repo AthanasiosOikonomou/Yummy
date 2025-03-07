@@ -40,12 +40,10 @@ const registerOwner = async (req, res, next, pool) => {
       phone,
     ]);
 
-    res
-      .status(201)
-      .json({
-        message: "Owner registered successfully",
-        owner: result.rows[0],
-      });
+    res.status(201).json({
+      message: "Owner registered successfully",
+      owner: result.rows[0],
+    });
   } catch (err) {
     next(err);
   }
@@ -76,12 +74,10 @@ const loginOwner = async (req, res, pool) => {
       { expiresIn: "30m" }
     ); // Creates a JWT token that expires in 30 minutes to limit session duration.
 
-    res
-      .cookie("token", token, { httpOnly: true })
-      .json({
-        message: "Login successful",
-        owner: { id: owner.rows[0].id, email: owner.rows[0].email },
-      }); // The 'httpOnly' flag prevents JavaScript access to the token, enhancing security.
+    res.cookie("token", token, { httpOnly: true }).json({
+      message: "Login successful",
+      owner: { id: owner.rows[0].id, email: owner.rows[0].email },
+    }); // The 'httpOnly' flag prevents JavaScript access to the token, enhancing security.
   } catch (error) {
     res.status(500).json({ message: "Server error" });
   }

@@ -9,38 +9,14 @@
     <h1 id="status-text">Checking authentication...</h1>
 
     <!-- Login and Logout buttons -->
-    <a href="/auth/google"
-      ><button id="login-btn" style="display: none">
-        Login with Google
-      </button></a
-    >
-    <a href="/logout"
-      ><button id="logout-btn" style="display: none">Logout</button></a
-    >
+    <a href="/user/auth/google">
+      <button id="login-btn" style="display: none">Login with Google</button>
+    </a>
+    <a href="/user/logout">
+      <button id="logout-btn" style="display: none">Logout</button>
+    </a>
 
-    <script>
-      async function checkAuth() {
-        try {
-          const response = await fetch("/auth/status");
-          const data = await response.json();
-
-          if (data.loggedIn) {
-            document.getElementById(
-              "status-text"
-            ).textContent = `Welcome, ${data.user.name}!`;
-            document.getElementById("logout-btn").style.display =
-              "inline-block"; // Show logout button
-          } else {
-            document.getElementById("status-text").textContent =
-              "Login with Google";
-            document.getElementById("login-btn").style.display = "inline-block"; // Show login button
-          }
-        } catch (error) {
-          console.error("Error checking auth status:", error);
-        }
-      }
-
-      checkAuth(); // Run check on page load
-    </script>
+    <!-- ✅ Script moved to an external file for better debugging -->
+    <script src="/script.js"></script>
   </body>
 </html>
