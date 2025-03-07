@@ -4,7 +4,19 @@ const passport = require("passport");
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
+const bcrypt = require("bcryptjs");
 const path = require("path");
+const { Pool } = require("pg");
+
+// Import Validation, Queries, and Controllers
+const { userSchema, loginSchema } = require("../validators/userValidator");
+const { getUserByEmail, insertUser } = require("../queries/userQueries");
+
+const {
+  registerUser,
+  loginUser,
+  getUserProfile,
+} = require("../controllers/userController");
 
 const {
   GOOGLE_CLIENT_ID,
@@ -15,12 +27,19 @@ const {
 
 const app = express();
 
+// Database Connection
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+});
+
 // Middleware
+app.use(express.json());
 app.use(cookieParser());
 app.use(express.static("public"));
 app.use(passport.initialize());
 
-// Passport Strategy for Google Login
+// **Google OAuth Strategy**
 passport.use(
   new GoogleStrategy(
     {
@@ -28,13 +47,28 @@ passport.use(
       clientSecret: GOOGLE_CLIENT_SECRET,
       callbackURL: GOOGLE_CALLBACK_URL,
     },
-    (accessToken, refreshToken, profile, done) => {
-      return done(null, profile);
+    async (accessToken, refreshToken, profile, done) => {
+      try {
+        const email = profile.emails[0].value;
+        const name = profile.displayName;
+
+        // Check if user exists
+        const existingUser = await pool.query(getUserByEmail, [email]);
+
+        if (existingUser.rows.length === 0) {
+          // Insert user into database (without password)
+          await pool.query(insertUser, [name, email, null, null]);
+        }
+
+        return done(null, { id: profile.id, name, email });
+      } catch (err) {
+        return done(err, null);
+      }
     }
   )
 );
 
-// Google Authentication Route (No Sessions)
+// **Google Authentication Routes**
 app.get(
   "/auth/google",
   passport.authenticate("google", {
@@ -43,7 +77,6 @@ app.get(
   })
 );
 
-// Google Callback Route (No Sessions)
 app.get(
   "/auth/google/callback",
   passport.authenticate("google", { failureRedirect: "/", session: false }),
@@ -54,16 +87,16 @@ app.get(
     const token = jwt.sign(
       {
         id: req.user.id,
-        name: req.user.displayName,
-        email: req.user.emails[0].value,
+        name: req.user.name,
+        email: req.user.email,
       },
       JWT_SECRET,
       { expiresIn: "1d" }
     );
 
-    // Set JWT as a cookie
+    // Store token in HTTP-only cookie
     res.cookie("token", token, {
-      httpOnly: true, // Secure and not accessible via JS
+      httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       path: "/",
       sameSite: "Lax",
@@ -73,13 +106,16 @@ app.get(
   }
 );
 
-// Logout Route (Clear Cookie)
-app.get("/logout", (req, res) => {
-  res.clearCookie("token", { path: "/" });
-  res.redirect("/");
+// **Email & Password Authentication**
+app.post("/register", async (req, res) => {
+  await registerUser(req, res, null, pool);
 });
 
-// 🔹 NEW: Check Authentication Status Route
+app.post("/login", async (req, res) => {
+  await loginUser(req, res, pool);
+});
+
+// **Check Authentication Status**
 app.get("/auth/status", (req, res) => {
   const token = req.cookies.token;
   if (!token) {
@@ -95,12 +131,23 @@ app.get("/auth/status", (req, res) => {
   }
 });
 
-// Serve Merged index.html File
+// **Get User Profile**
+app.get("/profile", async (req, res) => {
+  await getUserProfile(req, res, pool);
+});
+
+// **Logout**
+app.get("/logout", (req, res) => {
+  res.clearCookie("token", { path: "/" });
+  res.redirect("/");
+});
+
+// **Serve Frontend**
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-// Start Server
+// **Start Server**
 app.listen(3000, () => {
   console.log("Server running on port 3000");
 });
