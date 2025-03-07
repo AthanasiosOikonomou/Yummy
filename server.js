@@ -6,6 +6,7 @@ const express = require("express");
 const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
 const helmet = require("helmet");
+const path = require("path");
 
 const { rateLimiter } = require("./middleware/rateLimiter");
 const pool = require("./config/db.config");
@@ -21,6 +22,8 @@ const app = express();
 app.use(morgan("dev"));
 app.use(express.json());
 
+app.use(express.static("public"));
+
 // Helmet is for secure headers
 app.use(helmet());
 app.use(cookieParser());
@@ -30,6 +33,11 @@ app.use(rateLimiter);
 app.use("/user", userRoutes(pool));
 app.use("/owner", ownerRoutes(pool));
 app.use("/restaurant", restaurantRoutes(pool));
+
+// **Serve Frontend**
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
 
 // Global Error Handling Middleware
 app.use((err, req, res, next) => {
