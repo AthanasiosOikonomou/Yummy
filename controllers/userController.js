@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
 const passport = require("passport");
 const bcrypt = require("bcryptjs");
+const { JWT_SECRET, NODE_ENV } = process.env;
 
 const {
   userSchema,
@@ -14,8 +15,6 @@ const {
   insertUser,
   updateUser,
 } = require("../queries/userQueries");
-
-const JWT_SECRET = process.env.JWT_SECRET;
 
 /** Google Authentication Callback */
 const googleAuthCallback = async (req, res, pool) => {
@@ -48,7 +47,7 @@ const checkAuthStatus = (req, res) => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET);
     console.log("User authenticated:", decoded);
     res.json({ loggedIn: true, user: decoded });
   } catch (err) {
@@ -126,10 +125,17 @@ const loginUser = async (req, res, pool) => {
     // Generate JWT token
     const token = jwt.sign(
       { id: user.rows[0].id, email: user.rows[0].email },
-      process.env.JWT_SECRET,
+      JWT_SECRET,
       { expiresIn: "30m" }
     );
-    res.cookie("token", token, { httpOnly: true });
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: NODE_ENV === "production",
+      path: "/",
+      sameSite: "Lax",
+      maxAge: 24 * 60 * 60 * 1000, // 1 day in milliseconds
+    });
+
     res.json({
       message: "Login successful",
       user: { id: user.rows[0].id, email: user.rows[0].email },
@@ -157,7 +163,7 @@ const updateUserDetails = async (req, res, pool) => {
     // ✅ Verify token and decode user data
     let decoded;
     try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET);
+      decoded = jwt.verify(token, JWT_SECRET);
     } catch (err) {
       console.log("🚨 Invalid token:", err);
       res.clearCookie("token"); // Clear corrupted token
@@ -245,7 +251,7 @@ const getUserProfile = async (req, res, pool) => {
     // ✅ Verify token and decode user data
     let decoded;
     try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET);
+      decoded = jwt.verify(token, JWT_SECRET);
     } catch (err) {
       console.log("🚨 Invalid token:", err);
       res.clearCookie("token"); // Clear corrupted token
