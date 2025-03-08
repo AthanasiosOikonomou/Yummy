@@ -7,9 +7,12 @@ const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
 const helmet = require("helmet");
 const path = require("path");
+const cors = require("cors");
 
 const { rateLimiter } = require("./middleware/rateLimiter");
 const pool = require("./config/db.config");
+
+const { envPORT, FRONT_END_URL } = process.env;
 
 // import routes
 const userRoutes = require("./routes/user");
@@ -28,6 +31,7 @@ app.use(express.static("public"));
 app.use(helmet());
 app.use(cookieParser());
 app.use(rateLimiter);
+app.use(cors({ origin: FRONT_END_URL, credentials: true }));
 
 // routes
 app.use("/user", userRoutes(pool));
@@ -46,7 +50,7 @@ app.use((err, req, res, next) => {
 });
 
 // Start Express Server
-const PORT = process.env.PORT || 3000;
+const PORT = 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
