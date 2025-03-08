@@ -27,7 +27,7 @@ passport.use(
 
         if (existingUser.rows.length === 0) {
           // Insert new Google user (without password)
-          await pool.query(insertUser, [name, email, null, null]);
+          await pool.query(insertUser, [name, email, null, null, googleId]);
         }
 
         return done(null, { googleId, name, email });
