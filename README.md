@@ -1,24 +1,25 @@
 # Yummy - Restaurant Reservation API
 
-Yummy is an Express.js-based REST API for restaurant reservations.
+Yummy is an Express.js-based REST API designed for restaurant reservations.
 It provides functionalities for users, restaurant owners, and authentication using JWT and Google OAuth.
-The API includes user authentication, restaurant management, and owner functionalities.
+The API allows users to find and book restaurants, while owners can manage their listings.
 
-## Features
+## 🌟 Features
 - **User Authentication**: Supports JWT and Google OAuth for secure login.
 - **Role-based Access**: Separate routes and permissions for users, restaurant owners, and admins.
 - **Restaurant Management**: Owners can register and manage restaurants.
-- **Rate Limiting**: Prevents abuse of API endpoints.
+- **Rate Limiting**: Prevents API abuse by restricting excessive requests.
 - **Secure Cookie Handling**: Implements JWT authentication via cookies.
+- **Database Integration**: Uses PostgreSQL for data storage.
 
-## Technologies Used
+## 🛠 Technologies Used
 - **Backend**: Node.js, Express.js
 - **Database**: PostgreSQL
 - **Authentication**: JWT, Google OAuth (passport-google-oauth20)
 - **Validation**: express-validator
 - **Security**: bcrypt.js, helmet, cors, express-rate-limit
 
-## Installation
+## 🚀 Installation
 
 1. Clone the repository:
    ```sh
@@ -46,17 +47,17 @@ The API includes user authentication, restaurant management, and owner functiona
    npm start
    ```
 
-## API Endpoints
+## 🔗 API Endpoints
 
-### Authentication
+### 🛡 Authentication
 | Method | Endpoint           | Description                  |
 |--------|--------------------|------------------------------|
-| POST   | `/auth/google`     | Google OAuth login           |
+| GET    | `/auth/google`     | Redirects for Google OAuth   |
 | POST   | `/auth/login`      | User login (JWT)            |
 | POST   | `/auth/register`   | User registration           |
-| POST   | `/auth/logout`     | User logout                 |
+| GET    | `/auth/logout`     | User logout                 |
 
-### User Management
+### 👥 User Management
 | Method | Endpoint          | Description                      |
 |--------|-------------------|----------------------------------|
 | GET    | `/users`          | Get all users                   |
@@ -64,7 +65,7 @@ The API includes user authentication, restaurant management, and owner functiona
 | PUT    | `/users/:id`      | Update user details             |
 | DELETE | `/users/:id`      | Delete a user                   |
 
-### Restaurant Management
+### 🍽 Restaurant Management
 | Method | Endpoint                  | Description                         |
 |--------|---------------------------|-------------------------------------|
 | GET    | `/restaurants`             | Get all restaurants                 |
@@ -73,7 +74,7 @@ The API includes user authentication, restaurant management, and owner functiona
 | PUT    | `/restaurants/:id`         | Update restaurant (Owner only)      |
 | DELETE | `/restaurants/:id`         | Delete restaurant (Owner only)      |
 
-### Owner Management
+### 👨‍🍳 Owner Management
 | Method | Endpoint           | Description                        |
 |--------|--------------------|------------------------------------|
 | GET    | `/owners`         | Get all restaurant owners          |
@@ -82,9 +83,15 @@ The API includes user authentication, restaurant management, and owner functiona
 | PUT    | `/owners/:id`     | Update owner details               |
 | DELETE | `/owners/:id`     | Delete an owner                    |
 
-## Middleware
+## 🏗 Middleware
 - **Authentication Middleware**: `cookieJWTAuth.js` for securing routes.
 - **Rate Limiting**: `rateLimiter.js` to prevent excessive requests.
+
+## 🎨 Frontend Authentication UI
+This project includes a simple frontend authentication page:
+
+- `index.html` - Displays login/logout buttons for Google authentication.
+- `script.js` - Handles UI updates and interactions.
 
 ## Future Implementations
 
