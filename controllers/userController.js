@@ -338,6 +338,8 @@ const verifyEmail = async (req, res, pool) => {
   }
 };
 
+//TODO: Refactor repeated code for email verification
+
 const resendVerificationEmail = async (req, res, pool) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ message: "Email is required." });
