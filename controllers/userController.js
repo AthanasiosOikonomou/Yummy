@@ -96,6 +96,7 @@ const registerUser = async (req, res, pool) => {
       email,
       hashedPassword,
       phone,
+      null,
     ]);
 
     res.status(201).json({
