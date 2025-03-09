@@ -2,10 +2,15 @@
 const Joi = require("joi");
 
 const userSchema = Joi.object({
-  name: Joi.string().min(1).max(100).required(),
-  email: Joi.string().email().max(255).required(),
-  password: Joi.string().min(8).required(),
+  name: Joi.string().min(3).max(100).required(),
+  email: Joi.string().email().required(),
   phone: Joi.string().max(50).allow(null, "").optional(),
+  password: Joi.when("google_id", {
+    is: Joi.exist(),
+    then: Joi.optional(),
+    otherwise: Joi.string().min(6).required(), // Required if no Google ID
+  }),
+  google_id: Joi.string().optional(),
 });
 
 const loginSchema = Joi.object({
