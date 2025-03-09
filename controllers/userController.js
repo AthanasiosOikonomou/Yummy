@@ -1,7 +1,39 @@
+require("dotenv").config();
+
 const jwt = require("jsonwebtoken");
 const passport = require("passport");
 const bcrypt = require("bcryptjs");
-const { JWT_SECRET, NODE_ENV } = process.env;
+const nodemailer = require("nodemailer");
+
+const { JWT_SECRET, NODE_ENV, EMAIL_USER, EMAIL_PASS, FRONT_END_URL, envPORT } =
+  process.env;
+
+// Configure Email Transporter
+const transporter = nodemailer.createTransport({
+  service: "Gmail",
+  auth: {
+    user: EMAIL_USER,
+    pass: EMAIL_PASS,
+  },
+});
+
+// Send verification email function
+const sendVerificationEmail = async (user) => {
+  const token = jwt.sign({ id: user.id }, JWT_SECRET, {
+    expiresIn: "1d",
+  });
+
+  const verificationUrl = `${FRONT_END_URL}:${envPORT}/user/verify-email?token=${token}`;
+
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: user.email,
+    subject: "Verify Your Email",
+    html: `<p>Click the link to verify: <a href="${verificationUrl}">${verificationUrl}</a></p>`,
+  };
+
+  await transporter.sendMail(mailOptions);
+};
 
 const {
   userSchema,
@@ -14,6 +46,7 @@ const {
   getUserById,
   insertUser,
   updateUser,
+  confirmUser,
 } = require("../queries/userQueries");
 
 /** Google Authentication Callback */
@@ -99,10 +132,12 @@ const registerUser = async (req, res, pool) => {
       null,
     ]);
 
-    res.status(201).json({
-      message: "User registered successfully",
-      user: result.rows[0],
-    });
+    // Send verification email
+    await sendVerificationEmail(result.rows[0]);
+
+    res
+      .status(201)
+      .json({ message: "User registered. Check your email for verification." });
   } catch (err) {
     console.error("Error in registerUser:", err);
     res.status(500).json({ message: "Internal Server Error" });
@@ -282,6 +317,25 @@ const getUserProfile = async (req, res, pool) => {
   }
 };
 
+// Verify users via email
+const verifyEmail = async (req, res, pool) => {
+  try {
+    const { token } = req.query;
+    if (!token)
+      return res.status(400).json({ message: "Invalid or expired token" });
+
+    // Verify token
+    const decoded = jwt.verify(token, JWT_SECRET);
+
+    // Update user as verified
+    const setConfirmedUser = await pool.query(confirmUser, [decoded.id]);
+    console.log(setConfirmedUser);
+    res.json({ message: "Email verified successfully. You can now log in." });
+  } catch (error) {
+    res.status(500).json({ message: "Invalid or expired token" });
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
@@ -290,4 +344,5 @@ module.exports = {
   googleAuthCallback,
   checkAuthStatus,
   logoutUser,
+  verifyEmail,
 };

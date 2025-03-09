@@ -8,6 +8,7 @@ const {
   googleAuthCallback,
   checkAuthStatus,
   logoutUser,
+  verifyEmail,
 } = require("../controllers/userController");
 
 module.exports = (pool) => {
@@ -18,6 +19,7 @@ module.exports = (pool) => {
   router.post("/login", (req, res) => loginUser(req, res, pool));
   router.patch("/update", (req, res) => updateUserDetails(req, res, pool));
   router.get("/profile", (req, res) => getUserProfile(req, res, pool));
+  router.get("/verify-email", (req, res) => verifyEmail(req, res, pool));
 
   // **Google Authentication**
   router.get(
