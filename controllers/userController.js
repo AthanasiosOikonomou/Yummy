@@ -23,13 +23,15 @@ const sendVerificationEmail = async (user) => {
     expiresIn: "1d",
   });
 
-  const verificationUrl = `${FRONT_END_URL}:${envPORT}/user/verify-email?token=${token}`;
+  const verificationUrl = `${FRONT_END_URL}:${envPORT}/verify.html?token=${token}&email=${encodeURIComponent(
+    user.email
+  )}`;
 
   const mailOptions = {
     from: process.env.EMAIL_USER,
     to: user.email,
     subject: "Verify Your Email",
-    html: `<p>Click the link to verify: <a href="${verificationUrl}">${verificationUrl}</a></p>`,
+    html: `<a href="${verificationUrl}"><p>Click the link to verify</p></a>`,
   };
 
   await transporter.sendMail(mailOptions);
@@ -336,6 +338,54 @@ const verifyEmail = async (req, res, pool) => {
   }
 };
 
+const resendVerificationEmail = async (req, res, pool) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ message: "Email is required." });
+
+  try {
+    // Check if user exists
+    const checkUserQuery = "SELECT * FROM users WHERE email = $1";
+    const existingUser = await pool.query(checkUserQuery, [email]);
+
+    if (existingUser.rows.length === 0) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    const user = existingUser.rows[0];
+
+    // Check if already verified
+    if (user.is_verified) {
+      return res.status(400).json({ message: "User is already verified." });
+    }
+
+    // Generate new verification token
+    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, {
+      expiresIn: "1d",
+    });
+
+    // Send verification email again
+    const verificationUrl = `${FRONT_END_URL}:${envPORT}/verify.html?token=${token}&email=${encodeURIComponent(
+      user.email
+    )}`;
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: "Resend Email Verification",
+      html: `<a href="${verificationUrl}"><p>Click the link to verify your email</p></a>`,
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    res.json({ message: "Verification email resent! Check your inbox." });
+  } catch (error) {
+    console.error("Error in resendVerificationEmail:", error);
+    res.status(500).json({
+      message: "Error resending verification email. Please try again later.",
+    });
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
@@ -345,4 +395,5 @@ module.exports = {
   checkAuthStatus,
   logoutUser,
   verifyEmail,
+  resendVerificationEmail,
 };
