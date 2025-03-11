@@ -23,6 +23,7 @@
     "nodemailer": "^6.10.0",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
+    "password": "^0.1.1",
     "pg": "^8.13.3",
     "rate-limiter-flexible": "^5.0.5"
   }

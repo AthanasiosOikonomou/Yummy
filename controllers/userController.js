@@ -1,41 +1,12 @@
 require("dotenv").config();
 
+const sendVerificationEmail = require("../utils/sendVerificationEmail");
+
 const jwt = require("jsonwebtoken");
 const passport = require("passport");
 const bcrypt = require("bcryptjs");
-const nodemailer = require("nodemailer");
 
-const { JWT_SECRET, NODE_ENV, EMAIL_USER, EMAIL_PASS, FRONT_END_URL, envPORT } =
-  process.env;
-
-// Configure Email Transporter
-const transporter = nodemailer.createTransport({
-  service: "Gmail",
-  auth: {
-    user: EMAIL_USER,
-    pass: EMAIL_PASS,
-  },
-});
-
-// Send verification email function
-const sendVerificationEmail = async (user) => {
-  const token = jwt.sign({ id: user.id }, JWT_SECRET, {
-    expiresIn: "1d",
-  });
-
-  const verificationUrl = `${FRONT_END_URL}:${envPORT}/verify.html?token=${token}&email=${encodeURIComponent(
-    user.email
-  )}`;
-
-  const mailOptions = {
-    from: process.env.EMAIL_USER,
-    to: user.email,
-    subject: "Verify Your Email",
-    html: `<a href="${verificationUrl}"><p>Click the link to verify</p></a>`,
-  };
-
-  await transporter.sendMail(mailOptions);
-};
+const { JWT_SECRET, NODE_ENV } = process.env;
 
 const {
   userSchema,
@@ -338,16 +309,13 @@ const verifyEmail = async (req, res, pool) => {
   }
 };
 
-//TODO: Refactor repeated code for email verification
-
 const resendVerificationEmail = async (req, res, pool) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ message: "Email is required." });
 
   try {
     // Check if user exists
-    const checkUserQuery = "SELECT * FROM users WHERE email = $1";
-    const existingUser = await pool.query(checkUserQuery, [email]);
+    const existingUser = await pool.query(getUserByEmail, [email]);
 
     if (existingUser.rows.length === 0) {
       return res.status(404).json({ message: "User not found." });
@@ -360,24 +328,7 @@ const resendVerificationEmail = async (req, res, pool) => {
       return res.status(400).json({ message: "User is already verified." });
     }
 
-    // Generate new verification token
-    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, {
-      expiresIn: "1d",
-    });
-
-    // Send verification email again
-    const verificationUrl = `${FRONT_END_URL}:${envPORT}/verify.html?token=${token}&email=${encodeURIComponent(
-      user.email
-    )}`;
-
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: email,
-      subject: "Resend Email Verification",
-      html: `<a href="${verificationUrl}"><p>Click the link to verify your email</p></a>`,
-    };
-
-    await transporter.sendMail(mailOptions);
+    await sendVerificationEmail(user);
 
     res.json({ message: "Verification email resent! Check your inbox." });
   } catch (error) {
