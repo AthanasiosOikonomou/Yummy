@@ -103,6 +103,7 @@ const registerUser = async (req, res, pool) => {
       hashedPassword,
       phone,
       null,
+      null,
     ]);
 
     // Send verification email
@@ -337,6 +338,33 @@ const resendVerificationEmail = async (req, res, pool) => {
       message: "Error resending verification email. Please try again later.",
     });
   }
+};
+
+/** Facebook Authentication Callback */
+const facebookAuthCallback = async (req, res, pool) => {
+  passport.authenticate(
+    "facebook",
+    { failureRedirect: "/", session: false },
+    async (err, user) => {
+      if (!user) return res.redirect("/");
+
+      const token = jwt.sign(
+        { id: user.facebookId, name: user.name, email: user.email },
+        JWT_SECRET,
+        { expiresIn: "1d" }
+      );
+
+      res.cookie("token", token, {
+        httpOnly: true,
+        secure: NODE_ENV === "production",
+        path: "/",
+        sameSite: "Lax",
+        maxAge: 24 * 60 * 60 * 1000, // 1 day in milliseconds
+      });
+
+      return res.redirect("/");
+    }
+  )(req, res);
 };
 
 module.exports = {

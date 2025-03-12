@@ -1,11 +1,14 @@
 const express = require("express");
-const passport = require("../middleware/authGoogle");
+const passportGoogle = require("../middleware/authGoogle");
+const passportFacebook = require("../middleware/authFacebook");
+
 const {
   registerUser,
   loginUser,
   updateUserDetails,
   getUserProfile,
   googleAuthCallback,
+  facebookAuthCallback,
   checkAuthStatus,
   logoutUser,
   verifyEmail,
@@ -28,7 +31,7 @@ module.exports = (pool) => {
   // **Google Authentication**
   router.get(
     "/auth/google",
-    passport.authenticate("google", {
+    passportGoogle.authenticate("google", {
       scope: ["profile", "email"],
       prompt: "select_account",
       state: true,
@@ -37,6 +40,16 @@ module.exports = (pool) => {
 
   router.get("/auth/google/callback", (req, res) =>
     googleAuthCallback(req, res, pool)
+  );
+
+  // **Facebook Authentication**
+  router.get(
+    "/auth/facebook",
+    passportFacebook.authenticate("facebook", { scope: ["email"] })
+  );
+
+  router.get("/auth/facebook/callback", (req, res) =>
+    facebookAuthCallback(req, res, pool)
   );
 
   // **Authentication Status & Logout**
