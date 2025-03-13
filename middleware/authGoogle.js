@@ -4,6 +4,7 @@ const passport = require("passport");
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const pool = require("../config/db.config");
 const { getUserByEmail, insertUser } = require("../queries/userQueries");
+const sendVerificationEmail = require("../utils/sendVerificationEmail");
 
 const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_CALLBACK_URL } =
   process.env;
@@ -27,7 +28,15 @@ passport.use(
 
         if (existingUser.rows.length === 0) {
           // Insert new Google user (without password)
-          await pool.query(insertUser, [name, email, null, null, googleId]);
+          const newGoogleUser = await pool.query(insertUser, [
+            name,
+            email,
+            null,
+            null,
+            googleId,
+            null,
+          ]);
+          await sendVerificationEmail(newGoogleUser.rows[0]);
         }
 
         return done(null, { googleId, name, email });

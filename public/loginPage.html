@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login Page</title>
+    <link rel="stylesheet" href="loginPage.css" />
+  </head>
+  <body>
+    <div class="login-container">
+      <h2>Login</h2>
+      <p id="status-text">Checking authentication...</p>
+
+      <a href="/user/auth/google">
+        <button id="google-login-btn" class="google-btn" style="display: none">
+          Login with Google
+        </button>
+      </a>
+      <a href="/user/auth/facebook">
+        <button
+          id="facebook-login-btn"
+          class="facebook-btn"
+          style="display: none"
+        >
+          Login with Facebook
+        </button>
+      </a>
+
+      <a href="/user/logout">
+        <button id="logout-btn" style="display: none">Logout</button></a
+      >
+    </div>
+    <script src="loginPage.js"></script>
+  </body>
+</html>

@@ -1,7 +1,7 @@
-console.log("✅ Script is loaded and running...");
+console.log("✅ Authentication script loaded and running...");
 
 async function checkAuth() {
-  console.log("🔄 Starting authentication check...");
+  console.log("🔄 Checking authentication...");
 
   try {
     const response = await fetch("/user/auth/status");
@@ -18,14 +18,24 @@ async function checkAuth() {
       document.getElementById("logout-btn").style.display = "inline-block";
     } else {
       console.log("🚪 User is not logged in.");
-      document.getElementById("status-text").textContent = "Login with Google";
-      document.getElementById("login-btn").style.display = "inline-block";
+      updateLoginButtons();
     }
   } catch (error) {
     console.error("❌ Error checking auth status:", error);
     document.getElementById("status-text").textContent =
       "Error checking authentication!";
   }
+}
+
+function updateLoginButtons() {
+  const statusText = document.getElementById("status-text");
+  const googleLoginBtn = document.getElementById("google-login-btn");
+  const facebookLoginBtn = document.getElementById("facebook-login-btn");
+
+  if (googleLoginBtn) googleLoginBtn.style.display = "inline-block";
+  if (facebookLoginBtn) facebookLoginBtn.style.display = "inline-block";
+
+  statusText.textContent = "Please log in with Google or Facebook";
 }
 
 // ✅ Ensures `checkAuth()` runs when the DOM is fully loaded
