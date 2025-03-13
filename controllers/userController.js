@@ -162,6 +162,8 @@ const loginUser = async (req, res, pool) => {
   }
 };
 
+//TODO: UpdateUser should be accessible by google for googleId and facebook for facebookId, but as well for password, phone, etc
+
 /**
  * Update user details
  */
