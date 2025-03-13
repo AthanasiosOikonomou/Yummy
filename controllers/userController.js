@@ -377,4 +377,5 @@ module.exports = {
   logoutUser,
   verifyEmail,
   resendVerificationEmail,
+  facebookAuthCallback,
 };

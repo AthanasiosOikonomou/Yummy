@@ -38,9 +38,9 @@ app.use("/user", userRoutes(pool));
 app.use("/owner", ownerRoutes(pool));
 app.use("/restaurant", restaurantRoutes(pool));
 
-// **Serve Frontend**
+// **Serve Google Frontend**
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
+  res.sendFile(path.join(__dirname, "public", "loginPage.html"));
 });
 
 // Global Error Handling Middleware
