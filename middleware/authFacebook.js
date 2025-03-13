@@ -6,8 +6,6 @@ const pool = require("../config/db.config");
 const { getUserByEmail, insertUser } = require("../queries/userQueries");
 const sendVerificationEmail = require("../utils/sendVerificationEmail");
 
-//TODO:
-
 const { FACEBOOK_CLIENT_ID, FACEBOOK_CLIENT_SECRET, FACEBOOK_CALLBACK_URL } =
   process.env;
 
