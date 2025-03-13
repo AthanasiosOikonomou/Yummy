@@ -9,8 +9,6 @@ const sendVerificationEmail = require("../utils/sendVerificationEmail");
 const { FACEBOOK_CLIENT_ID, FACEBOOK_CLIENT_SECRET, FACEBOOK_CALLBACK_URL } =
   process.env;
 
-//TODO:
-
 // Facebook OAuth Strategy
 passport.use(
   new FacebookStrategy(
