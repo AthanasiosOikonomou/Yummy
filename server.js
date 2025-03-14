@@ -28,7 +28,16 @@ app.use(express.json());
 app.use(express.static("public"));
 
 // Helmet is for secure headers
-app.use(helmet());
+app.use(
+  helmet.contentSecurityPolicy({
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      objectSrc: ["'none'"],
+    },
+  })
+);
+
 app.use(cookieParser());
 app.use(rateLimiter);
 app.use(cors({ origin: FRONT_END_URL, credentials: true }));
