@@ -162,8 +162,6 @@ const loginUser = async (req, res, pool) => {
   }
 };
 
-//TODO: UpdateUser should be accessible by google for googleId and facebook for facebookId, but as well for password, phone, etc
-
 /**
  * Update user details
  */
@@ -195,7 +193,7 @@ const updateUserDetails = async (req, res, pool) => {
     const { error, value } = userUpdateSchema.validate(req.body);
     if (error) return res.status(400).json({ error: error.details[0].message });
 
-    const { name, email, password, phone } = value;
+    const { name, email, password, phone, google_id, facebook_id } = value;
 
     // ✅ Fetch user from database
     const userQuery = await pool.query(getUserById, [userId]);
@@ -229,6 +227,12 @@ const updateUserDetails = async (req, res, pool) => {
     if (hashedPassword)
       updateFields.push(`password = $${updateFields.length + 1}`),
         updateValues.push(hashedPassword);
+    if (google_id)
+      updateFields.push(`google_id = $${updateFields.length + 1}`),
+        updateValues.push(google_id);
+    if (facebook_id)
+      updateFields.push(`facebook_id = $${updateFields.length + 1}`),
+        updateValues.push(facebook_id);
 
     if (updateFields.length === 0) {
       return res
