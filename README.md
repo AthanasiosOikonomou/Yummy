@@ -26,7 +26,7 @@ The API allows users to find and book restaurants, while owners can manage their
 1. Clone the repository:
 
    ```sh
-   git clone https://github.com/yourusername/Yummy.git
+   git clone https://github.com/AthanasiosOikonomou/Yummy.git
    cd Yummy
    ```
 
