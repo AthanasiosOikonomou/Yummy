@@ -5,10 +5,11 @@ const userSchema = Joi.object({
   name: Joi.string().min(3).max(100).required(),
   email: Joi.string().email().required(),
   phone: Joi.string().max(50).allow(null, "").optional(),
+  role: Joi.string().required(),
   password: Joi.when("google_id", {
     is: Joi.exist(),
     then: Joi.optional(),
-    otherwise: Joi.string().min(6).required(), // Required if no Google ID
+    otherwise: Joi.string().min(8).required(), // Required if no Google ID
   }),
   google_id: Joi.string().optional(),
 });

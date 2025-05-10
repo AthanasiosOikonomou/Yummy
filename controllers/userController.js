@@ -20,6 +20,12 @@ const {
   insertUser,
   updateUser,
   confirmUser,
+  fetchUserPoints,
+  getUserFavorites,
+  checkFavorites,
+  deleteFavorite,
+  addFavorite,
+  getUserFavoritesCount,
 } = require("../queries/userQueries");
 
 /** Google Authentication Callback */
@@ -83,7 +89,7 @@ const registerUser = async (req, res, pool) => {
     const { error, value } = userSchema.validate(req.body);
     if (error) return res.status(400).json({ error: error.details[0].message });
 
-    const { name, email, password, phone } = value;
+    const { name, email, password, phone, role } = value;
 
     // ✅ Correctly use `pool.query`
     const existingUser = await pool.query(getUserByEmail, [email]);
@@ -102,6 +108,8 @@ const registerUser = async (req, res, pool) => {
       email,
       hashedPassword,
       phone,
+      role,
+      null,
       null,
       null,
     ]);
@@ -373,8 +381,205 @@ const facebookAuthCallback = async (req, res, pool) => {
   )(req, res);
 };
 
+const getUser = async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const user = await userQueries.getUserById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.json(user);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+const toggleFavorite = async (req, res) => {
+  const { userId } = req.params;
+  const { restaurantId } = req.body;
+  try {
+    const result = await userQueries.toggleFavorite(userId, restaurantId);
+    res.json(result);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+const getUserPoints = async (req, res, pool) => {
+  try {
+    console.log("🔍 Checking authentication via cookies...");
+
+    // ✅ Extract JWT token from cookies
+    const token = req.cookies.token;
+    if (!token) {
+      console.log("🚨 No token found in cookies");
+      return res.status(401).json({ message: "Unauthorized - No token found" });
+    }
+
+    // ✅ Verify token and decode user data
+    let decoded;
+    try {
+      decoded = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      console.log("🚨 Invalid token:", err);
+      res.clearCookie("token"); // Clear corrupted token
+      return res.status(401).json({ message: "Unauthorized - Invalid token" });
+    }
+
+    console.log("✅ Decoded user:", decoded);
+
+    const userId = decoded.id;
+
+    // ✅ Fetch user from database using decoded ID
+    const points = await pool.query(fetchUserPoints, [userId]);
+    if (points.rows.length === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    const loyalty_points = points.rows[0].loyalty_points;
+    res.json({ userId, loyalty_points });
+  } catch (error) {
+    console.error("Error fetching user points:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+const getFavorites = async (req, res, pool) => {
+  try {
+    console.log("🔍 Checking authentication via cookies...");
+
+    // ✅ Extract JWT token from cookies
+    const token = req.cookies.token;
+    if (!token) {
+      console.log("🚨 No token found in cookies");
+      return res.status(401).json({ message: "Unauthorized - No token found" });
+    }
+
+    // ✅ Verify token and decode user data
+    let decoded;
+    try {
+      decoded = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      console.log("🚨 Invalid token:", err);
+      res.clearCookie("token"); // Clear corrupted token
+      return res.status(401).json({ message: "Unauthorized - Invalid token" });
+    }
+
+    console.log("✅ Decoded user:", decoded);
+
+    const userId = decoded.id;
+
+    const page = parseInt(req.query.page, 10) || 1; // Default to 1 if not provided
+    const pageSize = parseInt(req.query.pageSize, 10) || 10; // Default to 10 if not provided
+
+    console.log(`page ${page}`);
+    console.log(`pageSize: ${pageSize}`);
+
+    const offset = (page - 1) * pageSize;
+    const limit = pageSize;
+
+    // ✅ Fetch user from database using decoded ID
+    const favorites = await pool.query(getUserFavorites, [
+      userId,
+      limit,
+      offset,
+    ]);
+    const favoriteRestaurants = favorites.rows;
+    if (favoriteRestaurants.length === 0) {
+      return res.status(404).json({ error: "User has no favorites." });
+    }
+
+    const countResult = await pool.query(getUserFavoritesCount, [userId]);
+    const totalCount = parseInt(countResult.rows[0].count, 10);
+
+    // Calculate pagination information
+    const currentPage = page;
+    const recordsOnCurrentPage = favorites.rows.length; // This will be pageSize or less if it's the last page
+    const viewedRecords = (currentPage - 1) * pageSize + recordsOnCurrentPage;
+    const remainingRecords = totalCount - viewedRecords;
+
+    res.json({
+      userId,
+      favoriteRestaurants,
+      Pagination: {
+        currentPage: currentPage,
+        recordsOnCurrentPage: recordsOnCurrentPage,
+        viewedRecords: viewedRecords,
+        remainingRecords: remainingRecords,
+        total: totalCount,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching user favorites:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+const toggleFavoriteController = async (req, res, pool) => {
+  try {
+    console.log("🔍 Checking authentication via cookies...");
+
+    // ✅ Extract JWT token from cookies
+    const token = req.cookies.token;
+    if (!token) {
+      console.log("🚨 No token found in cookies");
+      return res.status(401).json({ message: "Unauthorized - No token found" });
+    }
+
+    // ✅ Verify token and decode user data
+    let decoded;
+    try {
+      decoded = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      console.log("🚨 Invalid token:", err);
+      res.clearCookie("token"); // Clear corrupted token
+      return res.status(401).json({ message: "Unauthorized - Invalid token" });
+    }
+
+    console.log("✅ Decoded user:", decoded);
+
+    const userId = decoded.id;
+
+    const { restaurantId } = req.body;
+
+    if (!restaurantId) {
+      return res
+        .status(400)
+        .json({ error: "restaurantId is required in the body" });
+    }
+
+    const checkForFavorites = await pool.query(checkFavorites, [
+      userId,
+      restaurantId,
+    ]);
+
+    if (checkForFavorites.rows.length > 0) {
+      // If exists, delete it
+      const removeFavorites = await pool.query(deleteFavorite, [
+        userId,
+        restaurantId,
+      ]);
+      res.status(200).json({ removed: true });
+    } else {
+      // If not exists, insert it
+      const insertFavorite = await pool.query(addFavorite, [
+        userId,
+        restaurantId,
+      ]);
+      res.status(201).json({ added: true });
+    }
+    //
+  } catch (error) {
+    console.error("Error toggling favorite:", error);
+    res.status(500).json({ error: "Failed to toggle favorite" });
+  }
+};
+
 module.exports = {
   registerUser,
+  getUserPoints,
+  getUser,
+  toggleFavorite,
+  getUserFavorites,
   loginUser,
   updateUserDetails,
   getUserProfile,
@@ -384,4 +589,7 @@ module.exports = {
   verifyEmail,
   resendVerificationEmail,
   facebookAuthCallback,
+  getUserPoints,
+  getFavorites,
+  toggleFavoriteController,
 };

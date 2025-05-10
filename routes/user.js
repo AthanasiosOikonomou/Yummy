@@ -13,6 +13,9 @@ const {
   logoutUser,
   verifyEmail,
   resendVerificationEmail,
+  getUserPoints,
+  getFavorites,
+  toggleFavoriteController,
 } = require("../controllers/userController");
 
 module.exports = (pool) => {
@@ -24,6 +27,12 @@ module.exports = (pool) => {
   router.patch("/update", (req, res) => updateUserDetails(req, res, pool));
   router.get("/profile", (req, res) => getUserProfile(req, res, pool));
   router.get("/verify-email", (req, res) => verifyEmail(req, res, pool));
+  router.get("/points", (req, res) => getUserPoints(req, res, pool));
+  router.get("/favorites", (req, res) => getFavorites(req, res, pool));
+  router.post("/favorites/toggle", (req, res) =>
+    toggleFavoriteController(req, res, pool)
+  );
+
   router.post("/resend-verification", (req, res) =>
     resendVerificationEmail(req, res, pool)
   );

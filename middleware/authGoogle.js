@@ -25,7 +25,6 @@ passport.use(
 
         // Check if user exists
         const existingUser = await pool.query(getUserByEmail, [email]);
-
         if (existingUser.rows.length === 0) {
           // Insert new Google user (without password)
           const newGoogleUser = await pool.query(insertUser, [
@@ -33,7 +32,9 @@ passport.use(
             email,
             null,
             null,
+            "customer",
             googleId,
+            null,
             null,
           ]);
           await sendVerificationEmail(newGoogleUser.rows[0]);
