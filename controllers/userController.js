@@ -381,18 +381,6 @@ const facebookAuthCallback = async (req, res, pool) => {
   )(req, res);
 };
 
-const getUser = async (req, res) => {
-  const { userId } = req.params;
-  try {
-    const user = await userQueries.getUserById(userId);
-    if (!user) return res.status(404).json({ message: "User not found" });
-    res.json(user);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
 const toggleFavorite = async (req, res) => {
   const { userId } = req.params;
   const { restaurantId } = req.body;
@@ -471,9 +459,6 @@ const getFavorites = async (req, res, pool) => {
     const page = parseInt(req.query.page, 10) || 1; // Default to 1 if not provided
     const pageSize = parseInt(req.query.pageSize, 10) || 10; // Default to 10 if not provided
 
-    console.log(`page ${page}`);
-    console.log(`pageSize: ${pageSize}`);
-
     const offset = (page - 1) * pageSize;
     const limit = pageSize;
 
@@ -493,7 +478,7 @@ const getFavorites = async (req, res, pool) => {
 
     // Calculate pagination information
     const currentPage = page;
-    const recordsOnCurrentPage = favorites.rows.length; // This will be pageSize or less if it's the last page
+    const recordsOnCurrentPage = favoriteRestaurants.length; // This will be pageSize or less if it's the last page
     const viewedRecords = (currentPage - 1) * pageSize + recordsOnCurrentPage;
     const remainingRecords = totalCount - viewedRecords;
 
@@ -577,7 +562,6 @@ const toggleFavoriteController = async (req, res, pool) => {
 module.exports = {
   registerUser,
   getUserPoints,
-  getUser,
   toggleFavorite,
   getUserFavorites,
   loginUser,

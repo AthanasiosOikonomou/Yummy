@@ -16,8 +16,10 @@ const { envPORT, FRONT_END_URL } = process.env;
 
 // import routes
 const userRoutes = require("./routes/user");
-const ownerRoutes = require("./routes/owner");
 const restaurantRoutes = require("./routes/restaurant");
+const testimonialRoutes = require("./routes/testimonials");
+const reservationRoutes = require("./routes/reservations");
+const couponsRoutes = require("./routes/coupons");
 
 const app = express();
 
@@ -44,8 +46,10 @@ app.use(cors({ origin: FRONT_END_URL, credentials: true }));
 
 // routes
 app.use("/user", userRoutes(pool));
-app.use("/owner", ownerRoutes(pool));
 app.use("/restaurant", restaurantRoutes(pool));
+app.use("/testimonials", testimonialRoutes(pool));
+app.use("/reservations", reservationRoutes(pool));
+app.use("/coupons", couponsRoutes(pool));
 
 // **Serve Google Frontend**
 app.get("/", (req, res) => {

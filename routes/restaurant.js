@@ -2,27 +2,21 @@
 const express = require("express");
 const cookieJWTAuth = require("../middleware/cookieJWTAuth");
 const {
-  createRestaurant,
-  updateRestaurantDetails,
-  deleteRestaurantById,
-  getRestaurant,
-  getAllRestaurants,
+  getTrendingRestaurants,
+  getDiscountedRestaurants,
+  getFilteredRestaurants,
+  getRestaurantById,
 } = require("../controllers/restaurantController");
 
-const restaurantRoutes = (pool) => {
+module.exports = (pool) => {
   const router = express.Router();
-  router.post("/", cookieJWTAuth, (req, res, next) =>
-    createRestaurant(req, res, next, pool)
+
+  router.get("/id/:id", (req, res) => getRestaurantById(req, res, pool));
+  router.get("/", (req, res) => getFilteredRestaurants(req, res, pool));
+  router.get("/trending", (req, res) => getTrendingRestaurants(req, res, pool));
+  router.get("/discounted", (req, res) =>
+    getDiscountedRestaurants(req, res, pool)
   );
-  router.patch("/:id", cookieJWTAuth, (req, res, next) =>
-    updateRestaurantDetails(req, res, next, pool)
-  );
-  router.delete("/:id", cookieJWTAuth, (req, res, next) =>
-    deleteRestaurantById(req, res, next, pool)
-  );
-  router.get("/:id", (req, res) => getRestaurant(req, res, pool));
-  router.get("/", (req, res) => getAllRestaurants(req, res, pool));
+
   return router;
 };
-
-module.exports = restaurantRoutes;

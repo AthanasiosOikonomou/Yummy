@@ -6,149 +6,229 @@ const {
   updateRestaurantSchema,
 } = require("../validators/restaurantValidator");
 const {
-  insertRestaurant,
-  getRestaurantById,
-  getRestaurants,
-  deleteRestaurant,
-  checkRestaurantOwnership,
-  updateRestaurant,
+  fetchRestaurantById,
+  fetchMenuItemsByRestaurant,
+  fetchSpecialMenusByRestaurant,
+  fetchCouponsByRestaurant,
+  fetchTrendingRestaurants,
+  getRestaurantsTotal,
+  fetchDiscountedRestaurants,
+  totalDiscountedRestaurants,
+  fetchFilteredRestaurantsBase,
+  countFilteredRestaurantsBase,
 } = require("../queries/restaurantQueries");
 
-// This function handles restaurant creation, including validation and ownership assignment.
-const createRestaurant = async (req, res, next, pool) => {
+const getTrendingRestaurants = async (req, res, pool) => {
+  const page = parseInt(req.query.page, 10) || 1;
+  const pageSize = parseInt(req.query.limit, 10) || 10;
+
+  const offset = (page - 1) * pageSize;
+  const limit = pageSize;
+
   try {
-    const { error, value } = createRestaurantSchema.validate(req.body);
-    if (error) return res.status(400).json({ error: error.details[0].message });
-
-    const { name, location, lat, lng, cuisine } = value;
-    const ownerId = req.user.id;
-
-    // Insert new restaurant into the database
-    const result = await pool.query(insertRestaurant, [
-      name,
-      location,
-      lng,
-      lat,
-      cuisine,
-      ownerId,
+    const trendingRestaurants = await pool.query(fetchTrendingRestaurants, [
+      limit,
+      offset,
     ]);
-    res
-      .status(201)
-      .json({
-        message: "Restaurant created successfully",
-        restaurant: result.rows[0],
-      });
-  } catch (err) {
-    next(err);
-  }
-};
 
-// This function allows an owner to update restaurant details, ensuring only authorized changes.
-const updateRestaurantDetails = async (req, res, next, pool) => {
-  try {
-    const { error, value } = updateRestaurantSchema.validate(req.body);
-    if (error) return res.status(400).json({ error: error.details[0].message });
+    const allTrendingRestaurants = trendingRestaurants.rows;
 
-    const restaurantId = req.params.id;
-    const checkResult = await pool.query(checkRestaurantOwnership, [
-      restaurantId,
-      req.user.id,
-    ]);
-    if (checkResult.rows.length === 0)
-      return res
-        .status(404)
-        .json({ message: "Restaurant not found or not authorized" });
-
-    let updateFields = [];
-    let updateValues = [];
-    let idx = 1;
-
-    if (value.name) {
-      updateFields.push(`name = $${idx++}`);
-      updateValues.push(value.name);
-    }
-    if (value.location) {
-      updateFields.push(`location = $${idx++}`);
-      updateValues.push(value.location);
+    if (allTrendingRestaurants.length === 0) {
+      return res.status(404).json({ error: "Not trending restaurants found." });
     }
 
-    // Update latitude and longitude as a geospatial point
-    if (value.lat !== undefined && value.lng !== undefined) {
-      updateFields.push(
-        `location_cords = ST_SetSRID(ST_MakePoint($${idx++}, $${idx++}), 4326)`
-      );
-      updateValues.push(value.lng, value.lat);
-    }
+    const countResult = await pool.query(getRestaurantsTotal);
+    const totalCount = parseInt(countResult.rows[0].count, 10);
 
-    if (value.cuisine) {
-      updateFields.push(`cuisine = $${idx++}`);
-      updateValues.push(value.cuisine);
-    }
+    // Calculate pagination information
+    const currentPage = page;
+    const recordsOnCurrentPage = allTrendingRestaurants.length; // This will be pageSize or less if it's the last page
+    const viewedRecords = (currentPage - 1) * pageSize + recordsOnCurrentPage;
+    const remainingRecords = totalCount - viewedRecords;
 
-    updateValues.push(restaurantId, req.user.id);
-
-    // Execute update query
-    const result = await pool.query(
-      updateRestaurant(updateFields.join(", ")),
-      updateValues
-    );
     res.json({
-      message: "Restaurant updated successfully",
-      restaurant: result.rows[0],
+      allTrendingRestaurants,
+      Pagination: {
+        currentPage: currentPage,
+        recordsOnCurrentPage: recordsOnCurrentPage,
+        viewedRecords: viewedRecords,
+        remainingRecords: remainingRecords,
+        total: totalCount,
+      },
     });
   } catch (err) {
-    next(err);
+    console.error("Error fetching testimonials:", err);
+    res.status(500).json({ message: "Failed to load testimonials." });
   }
 };
 
-// This function handles restaurant deletion, ensuring only the owner can delete it.
-const deleteRestaurantById = async (req, res, next, pool) => {
+const getDiscountedRestaurants = async (req, res, pool) => {
+  const page = parseInt(req.query.page, 10) || 1;
+  const pageSize = parseInt(req.query.limit, 10) || 10;
+
+  const offset = (page - 1) * pageSize;
+  const limit = pageSize;
+
   try {
-    const restaurantId = req.params.id;
-    const checkResult = await pool.query(checkRestaurantOwnership, [
-      restaurantId,
-      req.user.id,
+    const discountedRestaurants = await pool.query(fetchDiscountedRestaurants, [
+      limit,
+      offset,
     ]);
-    if (checkResult.rows.length === 0)
+
+    const allDiscountedRestaurants = discountedRestaurants.rows;
+
+    if (allDiscountedRestaurants.length === 0) {
       return res
         .status(404)
-        .json({ message: "Restaurant not found or not authorized" });
+        .json({ error: "No restaurants with discounts found." });
+    }
 
-    await pool.query(deleteRestaurant, [restaurantId, req.user.id]);
-    res.json({ message: "Restaurant deleted successfully" });
+    const countResult = await pool.query(totalDiscountedRestaurants);
+    const totalCount = parseInt(countResult.rows[0].count, 10);
+
+    // Calculate pagination information
+    const currentPage = page;
+    const recordsOnCurrentPage = allDiscountedRestaurants.length; // This will be pageSize or less if it's the last page
+    const viewedRecords = (currentPage - 1) * pageSize + recordsOnCurrentPage;
+    const remainingRecords = totalCount - viewedRecords;
+
+    res.json({
+      allDiscountedRestaurants,
+      Pagination: {
+        currentPage: currentPage,
+        recordsOnCurrentPage: recordsOnCurrentPage,
+        viewedRecords: viewedRecords,
+        remainingRecords: remainingRecords,
+        total: totalCount,
+      },
+    });
   } catch (err) {
-    next(err);
+    console.error("Error fetching testimonials:", err);
+    res.status(500).json({ message: "Failed to load testimonials." });
   }
 };
 
-// Fetches a specific restaurant by ID.
-const getRestaurant = async (req, res, pool) => {
-  try {
-    const { id } = req.params;
-    const restaurant = await pool.query(getRestaurantById, [id]);
-    if (restaurant.rows.length === 0)
-      return res.status(404).json({ message: "Restaurant not found" });
+const getFilteredRestaurants = async (req, res, pool) => {
+  // 1) Parse pagination
+  const page = parseInt(req.query.page, 10) || 1;
+  const pageSize = parseInt(req.query.limit, 10) || 10;
+  const offset = (page - 1) * pageSize;
+  const limit = pageSize;
 
-    res.json(restaurant.rows[0]);
-  } catch (error) {
-    res.status(500).json({ message: "Server error" });
+  // 2) Build dynamic WHERE clause
+  const filters = [];
+  const values = [];
+  let idx = 1;
+
+  if (req.query.cuisine) {
+    filters.push(`cuisine = $${idx}`);
+    values.push(req.query.cuisine);
+    idx++;
+  }
+  if (req.query.location) {
+    filters.push(`location ILIKE $${idx}`);
+    values.push(`%${req.query.location}%`);
+    idx++;
+  }
+  if (req.query.guests) {
+    filters.push(`total_tables >= $${idx}`);
+    values.push(parseInt(req.query.guests, 10));
+    idx++;
+  }
+
+  if (req.query.name) {
+    filters.push(`name ILIKE $${idx}`);
+    values.push(`%${req.query.name}%`);
+    idx++;
+  }
+
+  const whereClause = filters.length ? ` WHERE ${filters.join(" AND ")}` : "";
+
+  try {
+    // 3) Fetch the page of data
+    const dataQuery = `
+      ${fetchFilteredRestaurantsBase}
+      ${whereClause}
+      ORDER BY name
+      LIMIT $${idx} OFFSET $${idx + 1}
+    `;
+    values.push(limit, offset);
+
+    const { rows: restaurants } = await pool.query(dataQuery, values);
+
+    if (!restaurants.length) {
+      return res
+        .status(404)
+        .json({ error: "No restaurants found matching filters." });
+    }
+
+    // 4) Fetch the total count
+    const countQuery = `
+      ${countFilteredRestaurantsBase}
+      ${whereClause}
+    `;
+    // count uses only the filter params (not limit/offset)
+    const countValues = values.slice(0, idx - 1);
+    const { rows: countRows } = await pool.query(countQuery, countValues);
+    const totalCount = parseInt(countRows[0].count, 10);
+
+    // 5) Build pagination metadata
+    const currentPage = page;
+    const recordsOnCurrentPage = restaurants.length;
+    const viewedRecords = (currentPage - 1) * pageSize + recordsOnCurrentPage;
+    const remainingRecords = totalCount - viewedRecords;
+
+    // 6) Send response
+    res.json({
+      restaurants,
+      Pagination: {
+        currentPage,
+        recordsOnCurrentPage,
+        viewedRecords,
+        remainingRecords,
+        total: totalCount,
+      },
+    });
+  } catch (err) {
+    console.error("Error fetching filtered restaurants:", err);
+    res.status(500).json({ message: "Failed to load restaurants." });
   }
 };
 
-// Retrieves all restaurants from the database.
-const getAllRestaurants = async (req, res, pool) => {
+const getRestaurantById = async (req, res, pool) => {
+  const { id } = req.params;
+
   try {
-    const result = await pool.query(getRestaurants);
-    res.json({ restaurants: result.rows });
-  } catch (error) {
-    res.status(500).json({ message: "Server error" });
+    // 1) Core restaurant data
+    const restRes = await pool.query(fetchRestaurantById, [id]);
+    if (restRes.rows.length === 0) {
+      return res.status(404).json({ error: "Restaurant not found." });
+    }
+    const restaurant = restRes.rows[0];
+
+    // 2) Related data
+    const [menuRes, specialRes, couponRes] = await Promise.all([
+      pool.query(fetchMenuItemsByRestaurant, [id]),
+      pool.query(fetchSpecialMenusByRestaurant, [id]),
+      pool.query(fetchCouponsByRestaurant, [id]),
+    ]);
+
+    // 3) Assemble and respond
+    res.json({
+      restaurant,
+      menuItems: menuRes.rows,
+      specialMenus: specialRes.rows,
+      coupons: couponRes.rows,
+    });
+  } catch (err) {
+    console.error("Error fetching restaurant details:", err);
+    res.status(500).json({ message: "Failed to load restaurant details." });
   }
 };
 
 module.exports = {
-  createRestaurant,
-  updateRestaurantDetails,
-  deleteRestaurantById,
-  getRestaurant,
-  getAllRestaurants,
+  getTrendingRestaurants,
+  getDiscountedRestaurants,
+  getFilteredRestaurants,
+  getRestaurantById,
 };
