@@ -1,10 +1,5 @@
 // controllers/restaurantController.js
 
-// Importing validation schemas and database queries
-const {
-  createRestaurantSchema,
-  updateRestaurantSchema,
-} = require("../validators/restaurantValidator");
 const {
   fetchRestaurantById,
   fetchMenuItemsByRestaurant,

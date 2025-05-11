@@ -1,3 +1,9 @@
+require("dotenv").config();
+
+const jwt = require("jsonwebtoken");
+
+const { JWT_SECRET } = process.env;
+
 const {
   fetchReservationsByUser,
   fetchReservationById,
@@ -5,11 +11,32 @@ const {
   deleteReservationQuery,
 } = require("../queries/reservationsQueries");
 
+const { getConfirmedUserStatus } = require("../queries/userQueries");
+
 const getUserReservations = async (req, res, pool) => {
-  const { userId } = req.params;
+  console.log("🔍 Checking authentication via cookies...");
+
+  // ✅ Extract JWT token from cookies
+  const token = req.cookies.token;
+  if (!token) {
+    console.log("🚨 No token found in cookies");
+    return res.status(401).json({ message: "Unauthorized - No token found" });
+  }
+
+  // ✅ Verify token and decode user data
+  let decoded;
+  try {
+    decoded = jwt.verify(token, JWT_SECRET);
+  } catch (err) {
+    console.log("🚨 Invalid token:", err);
+    res.clearCookie("token"); // Clear corrupted token
+    return res.status(401).json({ message: "Unauthorized - Invalid token" });
+  }
+
+  console.log("✅ Decoded user:", decoded);
 
   try {
-    const { rows } = await pool.query(fetchReservationsByUser, [userId]);
+    const { rows } = await pool.query(fetchReservationsByUser, [decoded.id]);
 
     if (rows.length === 0) {
       return res
@@ -42,8 +69,37 @@ const getReservationById = async (req, res, pool) => {
 };
 
 const createReservation = async (req, res, pool) => {
+  console.log("🔍 Checking authentication via cookies...");
+
+  // ✅ Extract JWT token from cookies
+  const token = req.cookies.token;
+  if (!token) {
+    console.log("🚨 No token found in cookies");
+    return res.status(401).json({ message: "Unauthorized - No token found" });
+  }
+
+  // ✅ Verify token and decode user data
+  let decoded;
+  try {
+    decoded = jwt.verify(token, JWT_SECRET);
+  } catch (err) {
+    console.log("🚨 Invalid token:", err);
+    res.clearCookie("token"); // Clear corrupted token
+    return res.status(401).json({ message: "Unauthorized - Invalid token" });
+  }
+
+  console.log("✅ Decoded user:", decoded);
+
   const {
-    userId,
+    rows: [{ confirmed_user: isUserConfirmed }],
+  } = await pool.query(getConfirmedUserStatus, [decoded.id]);
+
+  if (!isUserConfirmed) {
+    console.error("User is not confirmed");
+    return res.status(401).json({ message: "User is not confirmed." });
+  }
+
+  const {
     restaurantId,
     date,
     time,
@@ -55,7 +111,7 @@ const createReservation = async (req, res, pool) => {
 
   try {
     const { rows } = await pool.query(createReservationQuery, [
-      userId,
+      decoded.id,
       restaurantId,
       date,
       time,

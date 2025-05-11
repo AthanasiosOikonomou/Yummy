@@ -1,14 +1,41 @@
+require("dotenv").config();
+
+const jwt = require("jsonwebtoken");
+
+const { JWT_SECRET } = process.env;
+
 const {
   fetchUserCouponsQuery,
   purchaseCouponQuery,
   fetchAvailableCouponsQuery,
 } = require("../queries/couponsQueries");
 
-const getUserCoupons = async (req, res, pool) => {
-  const userId = req.params.userId;
+const { getConfirmedUserStatus } = require("../queries/userQueries");
 
+const getUserCoupons = async (req, res, pool) => {
   try {
-    const result = await pool.query(fetchUserCouponsQuery, [userId]);
+    console.log("🔍 Checking authentication via cookies...");
+
+    // ✅ Extract JWT token from cookies
+    const token = req.cookies.token;
+    if (!token) {
+      console.log("🚨 No token found in cookies");
+      return res.status(401).json({ message: "Unauthorized - No token found" });
+    }
+
+    // ✅ Verify token and decode user data
+    let decoded;
+    try {
+      decoded = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      console.log("🚨 Invalid token:", err);
+      res.clearCookie("token"); // Clear corrupted token
+      return res.status(401).json({ message: "Unauthorized - Invalid token" });
+    }
+
+    console.log("✅ Decoded user:", decoded);
+
+    const result = await pool.query(fetchUserCouponsQuery, [decoded.id]);
     const userCoupons = result.rows;
 
     if (userCoupons.length === 0) {
@@ -25,12 +52,45 @@ const getUserCoupons = async (req, res, pool) => {
 };
 
 const purchaseCoupon = async (req, res, pool) => {
-  const { userId, couponId } = req.body;
-  if (!userId || !couponId) {
-    return res.status(400).json({ error: "userId and couponId are required." });
+  console.log("🔍 Checking authentication via cookies...");
+
+  // ✅ Extract JWT token from cookies
+  const token = req.cookies.token;
+  if (!token) {
+    console.log("🚨 No token found in cookies");
+    return res.status(401).json({ message: "Unauthorized - No token found" });
+  }
+
+  // ✅ Verify token and decode user data
+  let decoded;
+  try {
+    decoded = jwt.verify(token, JWT_SECRET);
+  } catch (err) {
+    console.log("🚨 Invalid token:", err);
+    res.clearCookie("token"); // Clear corrupted token
+    return res.status(401).json({ message: "Unauthorized - Invalid token" });
+  }
+
+  console.log("✅ Decoded user:", decoded);
+
+  const { couponId } = req.body;
+  if (!couponId) {
+    return res.status(400).json({ error: "CouponId is required." });
   }
   try {
-    const { rows } = await pool.query(purchaseCouponQuery, [userId, couponId]);
+    const {
+      rows: [{ confirmed_user: isUserConfirmed }],
+    } = await pool.query(getConfirmedUserStatus, [decoded.id]);
+
+    if (!isUserConfirmed) {
+      console.error("User is not confirmed");
+      return res.status(401).json({ message: "User is not confirmed." });
+    }
+
+    const { rows } = await pool.query(purchaseCouponQuery, [
+      decoded.id,
+      couponId,
+    ]);
     res.status(201).json(rows[0]);
   } catch (err) {
     console.error("Error purchasing coupon:", err);
@@ -39,16 +99,36 @@ const purchaseCoupon = async (req, res, pool) => {
 };
 
 const getAvailableCoupons = async (req, res, pool) => {
-  const { restaurantId, userId } = req.query;
-  if (!restaurantId || !userId) {
-    return res
-      .status(400)
-      .json({ error: "restaurantId and userId are required." });
+  const { restaurantId } = req.query;
+  if (!restaurantId) {
+    return res.status(400).json({ error: "restaurantId is required." });
   }
+
+  console.log("🔍 Checking authentication via cookies...");
+
+  // ✅ Extract JWT token from cookies
+  const token = req.cookies.token;
+  if (!token) {
+    console.log("🚨 No token found in cookies");
+    return res.status(401).json({ message: "Unauthorized - No token found" });
+  }
+
+  // ✅ Verify token and decode user data
+  let decoded;
+  try {
+    decoded = jwt.verify(token, JWT_SECRET);
+  } catch (err) {
+    console.log("🚨 Invalid token:", err);
+    res.clearCookie("token"); // Clear corrupted token
+    return res.status(401).json({ message: "Unauthorized - Invalid token" });
+  }
+
+  console.log("✅ Decoded user:", decoded);
+
   try {
     const { rows } = await pool.query(fetchAvailableCouponsQuery, [
       restaurantId,
-      userId,
+      decoded.id,
     ]);
     res.json(rows);
   } catch (err) {

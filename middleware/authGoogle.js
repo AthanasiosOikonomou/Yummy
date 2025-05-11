@@ -35,6 +35,7 @@ passport.use(
             "customer",
             googleId,
             null,
+            false,
             null,
           ]);
           await sendVerificationEmail(newGoogleUser.rows[0]);

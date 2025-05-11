@@ -40,8 +40,11 @@ passport.use(
             email,
             null,
             null,
+            "customer",
             null,
             facebookId,
+            false,
+            null,
           ]);
           await sendVerificationEmail(newFacebookUser.rows[0]);
         }

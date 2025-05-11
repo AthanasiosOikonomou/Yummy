@@ -112,6 +112,7 @@ const registerUser = async (req, res, pool) => {
       null,
       null,
       null,
+      null,
     ]);
 
     // Send verification email
@@ -381,18 +382,6 @@ const facebookAuthCallback = async (req, res, pool) => {
   )(req, res);
 };
 
-const toggleFavorite = async (req, res) => {
-  const { userId } = req.params;
-  const { restaurantId } = req.body;
-  try {
-    const result = await userQueries.toggleFavorite(userId, restaurantId);
-    res.json(result);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
 const getUserPoints = async (req, res, pool) => {
   try {
     console.log("🔍 Checking authentication via cookies...");
@@ -562,8 +551,6 @@ const toggleFavoriteController = async (req, res, pool) => {
 module.exports = {
   registerUser,
   getUserPoints,
-  toggleFavorite,
-  getUserFavorites,
   loginUser,
   updateUserDetails,
   getUserProfile,
