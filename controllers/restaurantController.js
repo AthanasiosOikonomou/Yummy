@@ -98,8 +98,8 @@ const getDiscountedRestaurants = async (req, res, pool) => {
       },
     });
   } catch (err) {
-    console.error("Error fetching testimonials:", err);
-    res.status(500).json({ message: "Failed to load testimonials." });
+    console.error("Error fetching discounted restaurants:", err);
+    res.status(500).json({ message: "Failed to load discounted restaurants." });
   }
 };
 
@@ -116,10 +116,20 @@ const getFilteredRestaurants = async (req, res, pool) => {
   let idx = 1;
 
   if (req.query.cuisine) {
-    filters.push(`cuisine = $${idx}`);
-    values.push(req.query.cuisine);
+    filters.push(`cuisine ILIKE $${idx}`);
+    values.push(`%${req.query.cuisine}%`);
     idx++;
   }
+
+  if (req.query.rating) {
+    const rating = parseFloat(req.query.rating);
+    if (!isNaN(rating) && rating >= 1.0 && rating <= 5.0) {
+      filters.push(`rating >= $${idx}`);
+      values.push(rating);
+      idx++;
+    }
+  }
+
   if (req.query.location) {
     filters.push(`location ILIKE $${idx}`);
     values.push(`%${req.query.location}%`);
