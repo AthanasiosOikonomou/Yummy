@@ -22,8 +22,22 @@ const fetchAvailableCouponsQuery = `
     );
 `;
 
+const fetchRestaurantsWithPurchasedCoupons = `SELECT
+  r.*,
+  json_agg(DISTINCT c.*) AS coupons,
+  json_agg(DISTINCT sm.*) AS special_menus
+FROM restaurants r
+JOIN coupons c ON c.restaurant_id = r.id
+JOIN purchased_coupons upc ON upc.coupon_id = c.id
+LEFT JOIN special_menus sm ON sm.restaurant_id = r.id
+WHERE upc.user_id = $1
+GROUP BY r.id;
+
+`;
+
 module.exports = {
   fetchUserCouponsQuery,
   purchaseCouponQuery,
   fetchAvailableCouponsQuery,
+  fetchRestaurantsWithPurchasedCoupons,
 };

@@ -9,6 +9,7 @@ const {
   fetchReservationById,
   createReservationQuery,
   deleteReservationQuery,
+  cancelReservationQuery,
 } = require("../queries/reservationsQueries");
 
 const { getConfirmedUserStatus } = require("../queries/userQueries");
@@ -105,8 +106,8 @@ const createReservation = async (req, res, pool) => {
     time,
     guestCount,
     status = "pending",
-    specialMenuId = null,
-    couponId = null,
+    specialMenuId,
+    couponId,
   } = req.body;
 
   try {
@@ -120,6 +121,16 @@ const createReservation = async (req, res, pool) => {
       specialMenuId,
       couponId,
     ]);
+
+    if (rows.length === 0) {
+      console.error(
+        "Special menu or coupon does not belong to the selected restaurant."
+      );
+      res.status(400).json({
+        message:
+          "Special menu or coupon does not belong to the selected restaurant.",
+      });
+    }
     res.status(201).json(rows[0]);
   } catch (err) {
     console.error("Error creating reservation:", err);
@@ -129,6 +140,27 @@ const createReservation = async (req, res, pool) => {
 
 const deleteReservation = async (req, res, pool) => {
   const { id } = req.params;
+
+  console.log("🔍 Checking authentication via cookies...");
+
+  // ✅ Extract JWT token from cookies
+  const token = req.cookies.token;
+  if (!token) {
+    console.log("🚨 No token found in cookies");
+    return res.status(401).json({ message: "Unauthorized - No token found" });
+  }
+
+  // ✅ Verify token and decode user data
+  let decoded;
+  try {
+    decoded = jwt.verify(token, JWT_SECRET);
+  } catch (err) {
+    console.log("🚨 Invalid token:", err);
+    res.clearCookie("token"); // Clear corrupted token
+    return res.status(401).json({ message: "Unauthorized - Invalid token" });
+  }
+
+  console.log("✅ Decoded user:", decoded);
 
   try {
     const { rows } = await pool.query(deleteReservationQuery, [id]);
@@ -142,9 +174,49 @@ const deleteReservation = async (req, res, pool) => {
   }
 };
 
+const cancelReservation = async (req, res, pool) => {
+  const { id } = req.params;
+
+  console.log("🔍 Checking authentication via cookies...");
+
+  // ✅ Extract JWT token from cookies
+  const token = req.cookies.token;
+  if (!token) {
+    console.log("🚨 No token found in cookies");
+    return res.status(401).json({ message: "Unauthorized - No token found" });
+  }
+
+  // ✅ Verify token and decode user data
+  let decoded;
+  try {
+    decoded = jwt.verify(token, JWT_SECRET);
+  } catch (err) {
+    console.log("🚨 Invalid token:", err);
+    res.clearCookie("token"); // Clear corrupted token
+    return res.status(401).json({ message: "Unauthorized - Invalid token" });
+  }
+
+  console.log("✅ Decoded user:", decoded);
+
+  try {
+    const { rows } = await pool.query(cancelReservationQuery, [
+      "cancelled",
+      id,
+    ]);
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "Reservation not found." });
+    }
+    res.json({ status: "Canceled" });
+  } catch (err) {
+    console.error("Error canceling the reservation:", err);
+    res.status(500).json({ message: "Failed to cancel reservation." });
+  }
+};
+
 module.exports = {
   getUserReservations,
   getReservationById,
   createReservation,
   deleteReservation,
+  cancelReservation,
 };
