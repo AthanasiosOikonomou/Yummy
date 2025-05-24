@@ -9,6 +9,8 @@ const {
   purchaseCouponQuery,
   fetchAvailableCouponsQuery,
   fetchRestaurantsWithPurchasedCoupons,
+  getUserCouponsTotal,
+  fetchAvailableCouponsQueryTotal,
 } = require("../queries/couponsQueries");
 
 const { getConfirmedUserStatus } = require("../queries/userQueries");
@@ -18,6 +20,12 @@ const {
 
 const getUserCoupons = async (req, res, pool) => {
   try {
+    const page = parseInt(req.query.page, 10) || 1;
+    const pageSize = parseInt(req.query.pageSize, 10) || 10;
+
+    const offset = (page - 1) * pageSize;
+    const limit = pageSize;
+
     console.log("🔍 Checking authentication via cookies...");
 
     // ✅ Extract JWT token from cookies
@@ -39,8 +47,21 @@ const getUserCoupons = async (req, res, pool) => {
 
     console.log("✅ Decoded user:", decoded);
 
-    const result = await pool.query(fetchUserCouponsQuery, [decoded.id]);
+    const result = await pool.query(fetchUserCouponsQuery, [
+      decoded.id,
+      limit,
+      offset,
+    ]);
     const userCoupons = result.rows;
+
+    const countResult = await pool.query(getUserCouponsTotal, [decoded.id]);
+    const totalCount = parseInt(countResult.rows[0].count, 10);
+
+    // Calculate pagination information
+    const currentPage = page;
+    const recordsOnCurrentPage = userCoupons.length; // This will be pageSize or less if it's the last page
+    const viewedRecords = (currentPage - 1) * pageSize + recordsOnCurrentPage;
+    const remainingRecords = totalCount - viewedRecords;
 
     if (userCoupons.length === 0) {
       return res
@@ -48,7 +69,16 @@ const getUserCoupons = async (req, res, pool) => {
         .json({ message: "No coupons found for this user." });
     }
 
-    res.json({ userCoupons });
+    res.status(200).json({
+      userCoupons,
+      Pagination: {
+        currentPage: currentPage,
+        recordsOnCurrentPage: recordsOnCurrentPage,
+        viewedRecords: viewedRecords,
+        remainingRecords: remainingRecords,
+        total: totalCount,
+      },
+    });
   } catch (error) {
     console.error("Error fetching user coupons:", error);
     res.status(500).json({ message: "Failed to fetch user coupons." });
@@ -103,6 +133,11 @@ const purchaseCoupon = async (req, res, pool) => {
 };
 
 const getAvailableCoupons = async (req, res, pool) => {
+  const page = parseInt(req.query.page, 10) || 1;
+  const pageSize = parseInt(req.query.pageSize, 10) || 10;
+  const offset = (page - 1) * pageSize;
+  const limit = pageSize;
+
   const { restaurantId } = req.query;
   if (!restaurantId) {
     return res.status(400).json({ error: "restaurantId is required." });
@@ -132,7 +167,7 @@ const getAvailableCoupons = async (req, res, pool) => {
   try {
     const { rows: availableCoupons } = await pool.query(
       fetchAvailableCouponsQuery,
-      [restaurantId, decoded.id]
+      [restaurantId, decoded.id, limit, offset]
     );
 
     if (availableCoupons.length === 0) {
@@ -141,7 +176,28 @@ const getAvailableCoupons = async (req, res, pool) => {
         .json({ message: "No coupons found for this restaurant." });
     }
 
-    res.json({ availableCoupons });
+    const countResult = await pool.query(fetchAvailableCouponsQueryTotal, [
+      restaurantId,
+      decoded.id,
+    ]);
+    const totalCount = parseInt(countResult.rows[0].count, 10);
+
+    // Calculate pagination information
+    const currentPage = page;
+    const recordsOnCurrentPage = availableCoupons.length; // This will be pageSize or less if it's the last page
+    const viewedRecords = (currentPage - 1) * pageSize + recordsOnCurrentPage;
+    const remainingRecords = totalCount - viewedRecords;
+
+    res.status(200).json({
+      availableCoupons,
+      Pagination: {
+        currentPage: currentPage,
+        recordsOnCurrentPage: recordsOnCurrentPage,
+        viewedRecords: viewedRecords,
+        remainingRecords: remainingRecords,
+        total: totalCount,
+      },
+    });
   } catch (err) {
     console.error("Error fetching available coupons:", err);
     res.status(500).json({ message: "Failed to load available coupons." });

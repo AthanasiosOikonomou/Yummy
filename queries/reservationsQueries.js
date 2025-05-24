@@ -6,6 +6,16 @@ const fetchReservationsByUser = `
   ORDER BY date DESC, time DESC
 `;
 
+const fetchFilteredUserReservations = `
+    SELECT *
+    FROM reservations
+  `;
+
+const countFilteredUserReservations = `
+    SELECT COUNT(*) AS count
+    FROM reservations
+  `;
+
 const fetchReservationById = `
   SELECT *
   FROM reservations
@@ -59,4 +69,6 @@ module.exports = {
   createReservationQuery,
   deleteReservationQuery,
   cancelReservationQuery,
+  fetchFilteredUserReservations,
+  countFilteredUserReservations,
 };

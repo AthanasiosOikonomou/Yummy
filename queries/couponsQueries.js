@@ -3,7 +3,15 @@ const fetchUserCouponsQuery = `
     FROM purchased_coupons pc
     JOIN coupons c ON pc.coupon_id = c.id
     WHERE pc.user_id = $1
+    LIMIT $2 OFFSET $3
   `;
+
+const getUserCouponsTotal = `
+    SELECT COUNT(*) 
+    FROM purchased_coupons pc
+    JOIN coupons c ON pc.coupon_id = c.id
+    WHERE pc.user_id = $1
+`;
 
 const purchaseCouponQuery = `
   INSERT INTO purchased_coupons (user_id, coupon_id, purchased_at)
@@ -13,6 +21,19 @@ const purchaseCouponQuery = `
 
 const fetchAvailableCouponsQuery = `
   SELECT *
+  FROM coupons c
+  WHERE c.restaurant_id = $1
+    AND c.id NOT IN (
+      SELECT coupon_id
+      FROM purchased_coupons
+      WHERE user_id = $2
+      LIMIT $3 OFFSET $4
+    );
+ 
+`;
+
+const fetchAvailableCouponsQueryTotal = `
+  SELECT COUNT(*) 
   FROM coupons c
   WHERE c.restaurant_id = $1
     AND c.id NOT IN (
@@ -40,4 +61,6 @@ module.exports = {
   purchaseCouponQuery,
   fetchAvailableCouponsQuery,
   fetchRestaurantsWithPurchasedCoupons,
+  getUserCouponsTotal,
+  fetchAvailableCouponsQueryTotal,
 };

@@ -15,7 +15,7 @@ const {
 
 const getTrendingRestaurants = async (req, res, pool) => {
   const page = parseInt(req.query.page, 10) || 1;
-  const pageSize = parseInt(req.query.limit, 10) || 10;
+  const pageSize = parseInt(req.query.pageSize, 10) || 10;
 
   const offset = (page - 1) * pageSize;
   const limit = pageSize;
@@ -59,7 +59,7 @@ const getTrendingRestaurants = async (req, res, pool) => {
 
 const getDiscountedRestaurants = async (req, res, pool) => {
   const page = parseInt(req.query.page, 10) || 1;
-  const pageSize = parseInt(req.query.limit, 10) || 10;
+  const pageSize = parseInt(req.query.pageSize, 10) || 10;
 
   const offset = (page - 1) * pageSize;
   const limit = pageSize;
@@ -106,7 +106,7 @@ const getDiscountedRestaurants = async (req, res, pool) => {
 const getFilteredRestaurants = async (req, res, pool) => {
   // 1) Parse pagination
   const page = parseInt(req.query.page, 10) || 1;
-  const pageSize = parseInt(req.query.limit, 10) || 10;
+  const pageSize = parseInt(req.query.pageSize, 10) || 10;
   const offset = (page - 1) * pageSize;
   const limit = pageSize;
 
@@ -133,11 +133,6 @@ const getFilteredRestaurants = async (req, res, pool) => {
   if (req.query.location) {
     filters.push(`location ILIKE $${idx}`);
     values.push(`%${req.query.location}%`);
-    idx++;
-  }
-  if (req.query.guests) {
-    filters.push(`total_tables >= $${idx}`);
-    values.push(parseInt(req.query.guests, 10));
     idx++;
   }
 
