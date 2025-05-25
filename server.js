@@ -63,7 +63,6 @@ app.use((err, req, res, next) => {
 });
 
 // Start Express Server
-const PORT = 3000;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+app.listen(envPORT, () => {
+  console.log(`🚀 Server running on port ${envPORT}`);
 });

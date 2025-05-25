@@ -12,6 +12,9 @@ const userSchema = Joi.object({
     otherwise: Joi.string().min(8).required(), // Required if no Google ID
   }),
   google_id: Joi.string().optional(),
+  facebook_id: Joi.string().optional(),
+  newsletter_subscribed: Joi.boolean(),
+  profile_image: Joi.string().max(255).optional(),
 });
 
 const loginSchema = Joi.object({

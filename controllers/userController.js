@@ -89,7 +89,15 @@ const registerUser = async (req, res, pool) => {
     const { error, value } = userSchema.validate(req.body);
     if (error) return res.status(400).json({ error: error.details[0].message });
 
-    const { name, email, password, phone, role } = value;
+    const {
+      name,
+      email,
+      password,
+      phone,
+      role,
+      newsletter_subscribed,
+      profile_image,
+    } = value;
 
     // ✅ Correctly use `pool.query`
     const existingUser = await pool.query(getUserByEmail, [email]);
@@ -111,8 +119,8 @@ const registerUser = async (req, res, pool) => {
       role,
       null,
       null,
-      null,
-      null,
+      newsletter_subscribed,
+      profile_image,
     ]);
 
     // Send verification email
