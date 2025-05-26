@@ -13,7 +13,7 @@ const userSchema = Joi.object({
   }),
   google_id: Joi.string().optional(),
   facebook_id: Joi.string().optional(),
-  newsletter_subscribed: Joi.boolean(),
+  newsletterSubscribed: Joi.boolean(),
   profile_image: Joi.string().max(255).optional(),
 });
 

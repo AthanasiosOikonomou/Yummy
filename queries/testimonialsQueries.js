@@ -1,4 +1,4 @@
-const getTestimonials = `SELECT id, message
+const getTestimonials = `SELECT id, message, author
      FROM testimonials
      ORDER BY id
      LIMIT $1 OFFSET $2`;

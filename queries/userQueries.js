@@ -1,12 +1,16 @@
 // queries/userQueries.js
 const getUserByEmail = "SELECT * FROM users WHERE email = $1";
 
-const getUserById = "SELECT id, name, email, phone FROM users WHERE id = $1";
+const getUserById = `
+  SELECT id, name, email, phone, role, confirmed_user, profile_image 
+  FROM users 
+  WHERE id = $1
+`;
 
 const confirmUser = "UPDATE users SET confirmed_user = true WHERE id = $1";
 
 const insertUser =
-  "INSERT INTO users (name, email, password, phone, role, google_id, facebook_id, newsletter_subscribed, profile_image) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *";
+  "INSERT INTO users (name, email, password, phone, role, google_id, facebook_id, newsletterSubscribed, profile_image) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *";
 
 const updateUser = (fields) =>
   `UPDATE users SET ${fields} WHERE id = $${
@@ -36,7 +40,7 @@ const getUserFavoritesCount = `
   WHERE user_id = $1
 `;
 
-const getConfirmedUserStatus = "SELECT confirmed_user FROM users WHERE id = $1";
+const getconfirmed_userStatus = "SELECT confirmed_user FROM users WHERE id = $1";
 
 module.exports = {
   getUserByEmail,
@@ -50,5 +54,5 @@ module.exports = {
   deleteFavorite,
   addFavorite,
   getUserFavoritesCount,
-  getConfirmedUserStatus,
+  getconfirmed_userStatus,
 };

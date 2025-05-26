@@ -21,7 +21,7 @@ passport.use(
       try {
         const email = profile.emails[0].value;
         const name = profile.displayName;
-        const googleId = profile.id;
+        const google_id = profile.id;
 
         // Check if user exists
         const existingUser = await pool.query(getUserByEmail, [email]);
@@ -33,7 +33,7 @@ passport.use(
             null,
             null,
             "customer",
-            googleId,
+            google_id,
             null,
             false,
             null,
@@ -41,7 +41,7 @@ passport.use(
           await sendVerificationEmail(newGoogleUser.rows[0]);
         }
 
-        return done(null, { googleId, name, email });
+        return done(null, { google_id, name, email });
       } catch (err) {
         return done(err, null);
       }

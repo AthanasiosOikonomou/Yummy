@@ -26,32 +26,64 @@ const fetchCouponsByRestaurant = `
   WHERE restaurant_id = $1
 `;
 
-const fetchTrendingRestaurants = `SELECT *
-     FROM restaurants
-     ORDER BY rating DESC
-     LIMIT $1 OFFSET $2`;
+const fetchTrendingRestaurants = `SELECT 
+  r.*,
+  (
+    SELECT row_to_json(sm)
+    FROM special_menus sm
+    WHERE sm.restaurant_id = r.id
+    ORDER BY sm.id DESC
+    LIMIT 1
+  ) AS special_menus,
+  (
+    SELECT row_to_json(c)
+    FROM coupons c
+    WHERE c.restaurant_id = r.id
+    ORDER BY c.id DESC
+    LIMIT 1
+  ) AS coupons
+FROM restaurants r
+ORDER BY r.rating DESC
+LIMIT $1 OFFSET $2;
+`;
 
 const getRestaurantsTotal = `
     SELECT COUNT(*) 
     FROM restaurants
 `;
-const fetchDiscountedRestaurants = `SELECT r.*
-     FROM restaurants r
-     JOIN restaurant_happy_hours hh
-       ON r.id = hh.restaurant_id
-     GROUP BY r.id
-     ORDER BY r.rating DESC
-     LIMIT $1 OFFSET $2`;
+const fetchDiscountedRestaurants = `SELECT 
+  sm.*,
+  row_to_json(r) AS restaurant
+FROM special_menus sm
+JOIN restaurants r ON sm.restaurant_id = r.id
+ORDER BY sm.created_at DESC
+LIMIT $1 OFFSET $2;`;
 
-const totalDiscountedRestaurants = `SELECT
-  COUNT(DISTINCT restaurant_id) AS restaurants_with_happy_hours
-FROM restaurant_happy_hours
+const totalDiscountedRestaurants = `
+  SELECT COUNT(*) AS count
+  FROM special_menus
 `;
 
 const fetchFilteredRestaurantsBase = `
-  SELECT *
-  FROM restaurants
+  SELECT 
+    r.*,
+    (
+      SELECT row_to_json(sm)
+      FROM special_menus sm
+      WHERE sm.restaurant_id = r.id
+      ORDER BY sm.id DESC
+      LIMIT 1
+    ) AS special_menus,
+    (
+      SELECT row_to_json(c)
+      FROM coupons c
+      WHERE c.restaurant_id = r.id
+      ORDER BY c.id DESC
+      LIMIT 1
+    ) AS coupons
+  FROM restaurants r
 `;
+
 
 const countFilteredRestaurantsBase = `
   SELECT COUNT(*) AS count

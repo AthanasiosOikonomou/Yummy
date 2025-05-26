@@ -36,44 +36,50 @@ const googleAuthCallback = async (req, res, pool) => {
     async (err, user) => {
       if (!user) return res.redirect("/");
 
-      const token = jwt.sign(
-        { id: user.id, name: user.name, email: user.email },
-        JWT_SECRET,
-        { expiresIn: "1d" }
-      );
+      // Πάρε τα πλήρη δεδομένα χρήστη από DB
+      const dbUser = await pool.query(getUserByEmail, [user.email]);
+      const fullUser = dbUser.rows[0];
+
+      const payload = {
+        id: fullUser.id,
+        name: fullUser.name,
+        email: fullUser.email,
+        role: fullUser.role,
+        confirmed_user: fullUser.confirmed_user,
+      };
+
+      const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "1d" });
+
       res.cookie("token", token, {
         httpOnly: true,
         secure: NODE_ENV === "production",
         path: "/",
         sameSite: "Lax",
-        maxAge: 24 * 60 * 60 * 1000, // 1 day in milliseconds
+        maxAge: 24 * 60 * 60 * 1000,
       });
 
-      return res.redirect("/");
+      return res.redirect("http://localhost:3000/auth-redirect");
     }
   )(req, res);
 };
 
+
 /** Check Authentication Status */
 const checkAuthStatus = (req, res) => {
-  console.log("Checking authentication status..."); // Debug log
-
   const token = req.cookies.token;
   if (!token) {
-    console.log("No token found, user is not logged in.");
     return res.json({ loggedIn: false });
   }
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    console.log("User authenticated:", decoded);
     res.json({ loggedIn: true, user: decoded });
   } catch (err) {
-    console.log("Invalid token, clearing cookie...");
     res.clearCookie("token");
     res.json({ loggedIn: false });
   }
 };
+
 
 /** Logout */
 const logoutUser = (req, res) => {
@@ -95,7 +101,7 @@ const registerUser = async (req, res, pool) => {
       password,
       phone,
       role,
-      newsletter_subscribed,
+      newsletterSubscribed,
       profile_image,
     } = value;
 
@@ -103,7 +109,7 @@ const registerUser = async (req, res, pool) => {
     const existingUser = await pool.query(getUserByEmail, [email]);
 
     if (existingUser.rows.length > 0) {
-      return res.status(400).json({ message: "User already exists" });
+      return res.status(400).json({ error: "User already exists" });
     }
 
     // Hash password
@@ -119,7 +125,7 @@ const registerUser = async (req, res, pool) => {
       role,
       null,
       null,
-      newsletter_subscribed,
+      newsletterSubscribed,
       profile_image,
     ]);
 
@@ -144,40 +150,45 @@ const loginUser = async (req, res, pool) => {
   if (error) return res.status(400).json({ error: error.details[0].message });
 
   try {
-    const user = await pool.query(getUserByEmail, [email]);
-    if (user.rows.length === 0) {
-      return res.status(400).json({ message: "Invalid credentials" });
+    const userResult = await pool.query(getUserByEmail, [email]);
+    if (userResult.rows.length === 0) {
+      return res.status(400).json({ error: "Invalid credentials" });
     }
 
-    // Compare password
-    const validPassword = await bcrypt.compare(password, user.rows[0].password);
+    const user = userResult.rows[0];
+    const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) {
-      return res.status(400).json({ message: "Invalid credentials" });
+      return res.status(400).json({ error: "Invalid credentials" });
     }
 
-    // Generate JWT token
-    const token = jwt.sign(
-      { id: user.rows[0].id, email: user.rows[0].email },
-      JWT_SECRET,
-      { expiresIn: "30m" }
-    );
+    const payload = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      confirmed_user: user.confirmed_user,
+    };
+
+    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "30m" });
+
     res.cookie("token", token, {
       httpOnly: true,
       secure: NODE_ENV === "production",
       path: "/",
       sameSite: "Lax",
-      maxAge: 24 * 60 * 60 * 1000, // 1 day in milliseconds
+      maxAge: 24 * 60 * 60 * 1000, // 1 day
     });
 
     res.json({
       message: "Login successful",
-      user: { id: user.rows[0].id, email: user.rows[0].email },
+      user: payload,
     });
   } catch (error) {
-    console.error(error.message);
+    console.error("Error during login:", error.message);
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 /**
  * Update user details
@@ -204,7 +215,7 @@ const updateUserDetails = async (req, res, pool) => {
     }
 
     console.log("✅ Decoded user:", decoded);
-    const userId = decoded.id;
+    const user_id = decoded.id;
 
     // ✅ Validate input
     const { error, value } = userUpdateSchema.validate(req.body);
@@ -213,7 +224,7 @@ const updateUserDetails = async (req, res, pool) => {
     const { name, email, password, phone, google_id, facebook_id } = value;
 
     // ✅ Fetch user from database
-    const userQuery = await pool.query(getUserById, [userId]);
+    const userQuery = await pool.query(getUserById, [user_id]);
     if (userQuery.rows.length === 0) {
       console.log("🚨 User not found in database");
       return res.status(404).json({ message: "User not found" });
@@ -257,7 +268,7 @@ const updateUserDetails = async (req, res, pool) => {
         .json({ message: "No valid fields provided for update" });
     }
 
-    updateValues.push(userId);
+    updateValues.push(user_id);
 
     // ✅ Update user in database
     const result = await pool.query(
@@ -319,14 +330,14 @@ const verifyEmail = async (req, res, pool) => {
   try {
     const { token } = req.query;
     if (!token)
-      return res.status(400).json({ message: "Invalid or expired token" });
+      return res.status(400).json({ error: "Invalid or expired token" });
 
     // Verify token
     const decoded = jwt.verify(token, JWT_SECRET);
 
     // Update user as verified
-    const setConfirmedUser = await pool.query(confirmUser, [decoded.id]);
-    console.log(setConfirmedUser);
+    const setconfirmed_user = await pool.query(confirmUser, [decoded.id]);
+    console.log(setconfirmed_user);
     res.json({ message: "Email verified successfully. You can now log in." });
   } catch (error) {
     res.status(500).json({ message: "Invalid or expired token" });
@@ -335,7 +346,7 @@ const verifyEmail = async (req, res, pool) => {
 
 const resendVerificationEmail = async (req, res, pool) => {
   const { email } = req.body;
-  if (!email) return res.status(400).json({ message: "Email is required." });
+  if (!email) return res.status(400).json({ error: "Email is required." });
 
   try {
     // Check if user exists
@@ -348,8 +359,8 @@ const resendVerificationEmail = async (req, res, pool) => {
     const user = existingUser.rows[0];
 
     // Check if already verified
-    if (user.is_verified) {
-      return res.status(400).json({ message: "User is already verified." });
+    if (user.confirmed_user) {
+      return res.status(400).json({ error: "User is already verified." });
     }
 
     await sendVerificationEmail(user);
@@ -371,24 +382,33 @@ const facebookAuthCallback = async (req, res, pool) => {
     async (err, user) => {
       if (!user) return res.redirect("/");
 
-      const token = jwt.sign(
-        { id: user.facebookId, name: user.name, email: user.email },
-        JWT_SECRET,
-        { expiresIn: "1d" }
-      );
+      // Πάρε τα πλήρη δεδομένα χρήστη από DB
+      const dbUser = await pool.query(getUserByEmail, [user.email]);
+      const fullUser = dbUser.rows[0];
+
+      const payload = {
+        id: fullUser.id,
+        name: fullUser.name,
+        email: fullUser.email,
+        role: fullUser.role,
+        confirmed_user: fullUser.confirmed_user,
+      };
+
+      const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "1d" });
 
       res.cookie("token", token, {
         httpOnly: true,
         secure: NODE_ENV === "production",
         path: "/",
         sameSite: "Lax",
-        maxAge: 24 * 60 * 60 * 1000, // 1 day in milliseconds
+        maxAge: 24 * 60 * 60 * 1000,
       });
 
-      return res.redirect("/");
+      return res.redirect("http://localhost:3000/auth-redirect");
     }
   )(req, res);
 };
+
 
 const getUserPoints = async (req, res, pool) => {
   try {
@@ -413,15 +433,15 @@ const getUserPoints = async (req, res, pool) => {
 
     console.log("✅ Decoded user:", decoded);
 
-    const userId = decoded.id;
+    const user_id = decoded.id;
 
     // ✅ Fetch user from database using decoded ID
-    const points = await pool.query(fetchUserPoints, [userId]);
+    const points = await pool.query(fetchUserPoints, [user_id]);
     if (points.rows.length === 0) {
       return res.status(404).json({ error: "User not found" });
     }
     const loyalty_points = points.rows[0].loyalty_points;
-    res.json({ userId, loyalty_points });
+    res.json({ user_id, loyalty_points });
   } catch (error) {
     console.error("Error fetching user points:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -451,7 +471,7 @@ const getFavorites = async (req, res, pool) => {
 
     console.log("✅ Decoded user:", decoded);
 
-    const userId = decoded.id;
+    const user_id = decoded.id;
 
     const page = parseInt(req.query.page, 10) || 1; // Default to 1 if not provided
     const pageSize = parseInt(req.query.pageSize, 10) || 10; // Default to 10 if not provided
@@ -461,7 +481,7 @@ const getFavorites = async (req, res, pool) => {
 
     // ✅ Fetch user from database using decoded ID
     const favorites = await pool.query(getUserFavorites, [
-      userId,
+      user_id,
       limit,
       offset,
     ]);
@@ -470,7 +490,7 @@ const getFavorites = async (req, res, pool) => {
       return res.status(404).json({ error: "User has no favorites." });
     }
 
-    const countResult = await pool.query(getUserFavoritesCount, [userId]);
+    const countResult = await pool.query(getUserFavoritesCount, [user_id]);
     const totalCount = parseInt(countResult.rows[0].count, 10);
 
     // Calculate pagination information
@@ -480,7 +500,7 @@ const getFavorites = async (req, res, pool) => {
     const remainingRecords = totalCount - viewedRecords;
 
     res.json({
-      userId,
+      user_id,
       favoriteRestaurants,
       Pagination: {
         currentPage: currentPage,
@@ -519,33 +539,33 @@ const toggleFavoriteController = async (req, res, pool) => {
 
     console.log("✅ Decoded user:", decoded);
 
-    const userId = decoded.id;
+    const user_id = decoded.id;
 
-    const { restaurantId } = req.body;
+    const { restaurant_id } = req.body;
 
-    if (!restaurantId) {
+    if (!restaurant_id) {
       return res
         .status(400)
-        .json({ error: "restaurantId is required in the body" });
+        .json({ error: "restaurant_id is required in the body" });
     }
 
     const checkForFavorites = await pool.query(checkFavorites, [
-      userId,
-      restaurantId,
+      user_id,
+      restaurant_id,
     ]);
 
     if (checkForFavorites.rows.length > 0) {
       // If exists, delete it
       const removeFavorites = await pool.query(deleteFavorite, [
-        userId,
-        restaurantId,
+        user_id,
+        restaurant_id,
       ]);
       res.status(200).json({ removed: true });
     } else {
       // If not exists, insert it
       const insertFavorite = await pool.query(addFavorite, [
-        userId,
-        restaurantId,
+        user_id,
+        restaurant_id,
       ]);
       res.status(201).json({ added: true });
     }

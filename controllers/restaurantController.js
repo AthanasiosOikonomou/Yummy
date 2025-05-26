@@ -213,12 +213,17 @@ const getRestaurantById = async (req, res, pool) => {
       pool.query(fetchCouponsByRestaurant, [id]),
     ]);
 
-    // 3) Assemble and respond
+    // 3) Always return arrays — even if empty
+    const menu_items = Array.isArray(menuRes.rows) ? menuRes.rows : [];
+    const special_menus = Array.isArray(specialRes.rows) ? specialRes.rows : [];
+    const coupons = Array.isArray(couponRes.rows) ? couponRes.rows : [];
+
+    // 4) Respond
     res.json({
       restaurant,
-      menuItems: menuRes.rows,
-      specialMenus: specialRes.rows,
-      coupons: couponRes.rows,
+      menu_items,
+      special_menus,
+      coupons,
     });
   } catch (err) {
     console.error("Error fetching restaurant details:", err);

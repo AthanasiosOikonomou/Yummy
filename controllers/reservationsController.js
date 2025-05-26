@@ -14,7 +14,7 @@ const {
   countFilteredUserReservations,
 } = require("../queries/reservationsQueries");
 
-const { getConfirmedUserStatus } = require("../queries/userQueries");
+const { getconfirmed_userStatus } = require("../queries/userQueries");
 
 const getUserReservations = async (req, res, pool) => {
   console.log("🔍 Checking authentication via cookies...");
@@ -116,7 +116,7 @@ const createReservation = async (req, res, pool) => {
 
   const {
     rows: [{ confirmed_user: isUserConfirmed }],
-  } = await pool.query(getConfirmedUserStatus, [decoded.id]);
+  } = await pool.query(getconfirmed_userStatus, [decoded.id]);
 
   if (!isUserConfirmed) {
     console.error("User is not confirmed");
@@ -124,25 +124,25 @@ const createReservation = async (req, res, pool) => {
   }
 
   const {
-    restaurantId,
+    restaurant_id,
     date,
     time,
-    guestCount,
+    guest_count,
     status = "pending",
-    specialMenuId,
-    couponId,
+    special_menu_id,
+    coupon_id,
   } = req.body;
 
   try {
     const { rows } = await pool.query(createReservationQuery, [
       decoded.id,
-      restaurantId,
+      restaurant_id,
       date,
       time,
-      guestCount,
+      guest_count,
       status,
-      specialMenuId,
-      couponId,
+      special_menu_id,
+      coupon_id,
     ]);
 
     if (rows.length === 0) {

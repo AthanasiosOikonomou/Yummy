@@ -22,7 +22,7 @@ passport.use(
       try {
         const email = profile.emails ? profile.emails[0].value : null;
         const name = profile.displayName;
-        const facebookId = profile.id;
+        const facebook_id = profile.id;
 
         if (!email) {
           return done(null, false, {
@@ -42,14 +42,14 @@ passport.use(
             null,
             "customer",
             null,
-            facebookId,
+            facebook_id,
             false,
             null,
           ]);
           await sendVerificationEmail(newFacebookUser.rows[0]);
         }
 
-        return done(null, { facebookId, name, email });
+        return done(null, { facebook_id, name, email });
       } catch (err) {
         return done(err, null);
       }

@@ -1,5 +1,4 @@
 require("dotenv").config();
-
 const jwt = require("jsonwebtoken");
 
 const { JWT_SECRET } = process.env;
@@ -13,43 +12,28 @@ const {
   fetchAvailableCouponsQueryTotal,
 } = require("../queries/couponsQueries");
 
-const { getConfirmedUserStatus } = require("../queries/userQueries");
-const {
-  fetchFilteredRestaurantsBase,
-} = require("../queries/restaurantQueries");
+const { getconfirmed_userStatus } = require("../queries/userQueries");
 
 const getUserCoupons = async (req, res, pool) => {
   try {
     const page = parseInt(req.query.page, 10) || 1;
     const pageSize = parseInt(req.query.pageSize, 10) || 10;
-
     const offset = (page - 1) * pageSize;
-    const limit = pageSize;
 
-    console.log("🔍 Checking authentication via cookies...");
-
-    // ✅ Extract JWT token from cookies
     const token = req.cookies.token;
-    if (!token) {
-      console.log("🚨 No token found in cookies");
-      return res.status(401).json({ message: "Unauthorized - No token found" });
-    }
+    if (!token) return res.status(401).json({ message: "Unauthorized - No token found" });
 
-    // ✅ Verify token and decode user data
     let decoded;
     try {
       decoded = jwt.verify(token, JWT_SECRET);
     } catch (err) {
-      console.log("🚨 Invalid token:", err);
-      res.clearCookie("token"); // Clear corrupted token
+      res.clearCookie("token");
       return res.status(401).json({ message: "Unauthorized - Invalid token" });
     }
 
-    console.log("✅ Decoded user:", decoded);
-
     const result = await pool.query(fetchUserCouponsQuery, [
       decoded.id,
-      limit,
+      pageSize,
       offset,
     ]);
     const userCoupons = result.rows;
@@ -57,25 +41,16 @@ const getUserCoupons = async (req, res, pool) => {
     const countResult = await pool.query(getUserCouponsTotal, [decoded.id]);
     const totalCount = parseInt(countResult.rows[0].count, 10);
 
-    // Calculate pagination information
-    const currentPage = page;
-    const recordsOnCurrentPage = userCoupons.length; // This will be pageSize or less if it's the last page
-    const viewedRecords = (currentPage - 1) * pageSize + recordsOnCurrentPage;
+    const viewedRecords = offset + userCoupons.length;
     const remainingRecords = totalCount - viewedRecords;
-
-    if (userCoupons.length === 0) {
-      return res
-        .status(404)
-        .json({ message: "No coupons found for this user." });
-    }
 
     res.status(200).json({
       userCoupons,
       Pagination: {
-        currentPage: currentPage,
-        recordsOnCurrentPage: recordsOnCurrentPage,
-        viewedRecords: viewedRecords,
-        remainingRecords: remainingRecords,
+        currentPage: page,
+        recordsOnCurrentPage: userCoupons.length,
+        viewedRecords,
+        remainingRecords,
         total: totalCount,
       },
     });
@@ -86,45 +61,28 @@ const getUserCoupons = async (req, res, pool) => {
 };
 
 const purchaseCoupon = async (req, res, pool) => {
-  console.log("🔍 Checking authentication via cookies...");
-
-  // ✅ Extract JWT token from cookies
   const token = req.cookies.token;
-  if (!token) {
-    console.log("🚨 No token found in cookies");
-    return res.status(401).json({ message: "Unauthorized - No token found" });
-  }
+  if (!token) return res.status(401).json({ message: "Unauthorized - No token found" });
 
-  // ✅ Verify token and decode user data
   let decoded;
   try {
     decoded = jwt.verify(token, JWT_SECRET);
   } catch (err) {
-    console.log("🚨 Invalid token:", err);
-    res.clearCookie("token"); // Clear corrupted token
+    res.clearCookie("token");
     return res.status(401).json({ message: "Unauthorized - Invalid token" });
   }
 
-  console.log("✅ Decoded user:", decoded);
+  const { coupon_id } = req.body;
+  if (!coupon_id) return res.status(400).json({ error: "coupon_id is required." });
 
-  const { couponId } = req.body;
-  if (!couponId) {
-    return res.status(400).json({ error: "CouponId is required." });
-  }
   try {
     const {
       rows: [{ confirmed_user: isUserConfirmed }],
-    } = await pool.query(getConfirmedUserStatus, [decoded.id]);
+    } = await pool.query(getconfirmed_userStatus, [decoded.id]);
 
-    if (!isUserConfirmed) {
-      console.error("User is not confirmed");
-      return res.status(401).json({ message: "User is not confirmed." });
-    }
+    if (!isUserConfirmed) return res.status(401).json({ message: "User is not confirmed." });
 
-    const { rows } = await pool.query(purchaseCouponQuery, [
-      decoded.id,
-      couponId,
-    ]);
+    const { rows } = await pool.query(purchaseCouponQuery, [decoded.id, coupon_id]);
     res.status(201).json(rows[0]);
   } catch (err) {
     console.error("Error purchasing coupon:", err);
@@ -136,65 +94,45 @@ const getAvailableCoupons = async (req, res, pool) => {
   const page = parseInt(req.query.page, 10) || 1;
   const pageSize = parseInt(req.query.pageSize, 10) || 10;
   const offset = (page - 1) * pageSize;
-  const limit = pageSize;
+  const { restaurant_id } = req.query;
 
-  const { restaurantId } = req.query;
-  if (!restaurantId) {
-    return res.status(400).json({ error: "restaurantId is required." });
-  }
+  if (!restaurant_id) return res.status(400).json({ error: "restaurant_id is required." });
 
-  console.log("🔍 Checking authentication via cookies...");
-
-  // ✅ Extract JWT token from cookies
   const token = req.cookies.token;
-  if (!token) {
-    console.log("🚨 No token found in cookies");
-    return res.status(401).json({ message: "Unauthorized - No token found" });
-  }
+  if (!token) return res.status(401).json({ message: "Unauthorized - No token found" });
 
-  // ✅ Verify token and decode user data
   let decoded;
   try {
     decoded = jwt.verify(token, JWT_SECRET);
   } catch (err) {
-    console.log("🚨 Invalid token:", err);
-    res.clearCookie("token"); // Clear corrupted token
+    res.clearCookie("token");
     return res.status(401).json({ message: "Unauthorized - Invalid token" });
   }
 
-  console.log("✅ Decoded user:", decoded);
-
   try {
-    const { rows: availableCoupons } = await pool.query(
-      fetchAvailableCouponsQuery,
-      [restaurantId, decoded.id, limit, offset]
-    );
-
-    if (availableCoupons.length === 0) {
-      return res
-        .status(404)
-        .json({ message: "No coupons found for this restaurant." });
-    }
+    const { rows: availableCoupons } = await pool.query(fetchAvailableCouponsQuery, [
+      restaurant_id,
+      decoded.id,
+      pageSize,
+      offset,
+    ]);
 
     const countResult = await pool.query(fetchAvailableCouponsQueryTotal, [
-      restaurantId,
+      restaurant_id,
       decoded.id,
     ]);
     const totalCount = parseInt(countResult.rows[0].count, 10);
 
-    // Calculate pagination information
-    const currentPage = page;
-    const recordsOnCurrentPage = availableCoupons.length; // This will be pageSize or less if it's the last page
-    const viewedRecords = (currentPage - 1) * pageSize + recordsOnCurrentPage;
+    const viewedRecords = offset + availableCoupons.length;
     const remainingRecords = totalCount - viewedRecords;
 
     res.status(200).json({
       availableCoupons,
       Pagination: {
-        currentPage: currentPage,
-        recordsOnCurrentPage: recordsOnCurrentPage,
-        viewedRecords: viewedRecords,
-        remainingRecords: remainingRecords,
+        currentPage: page,
+        recordsOnCurrentPage: availableCoupons.length,
+        viewedRecords,
+        remainingRecords,
         total: totalCount,
       },
     });
@@ -205,43 +143,25 @@ const getAvailableCoupons = async (req, res, pool) => {
 };
 
 const getRestaurantsWithPurchasedCoupons = async (req, res, pool) => {
+  const token = req.cookies.token;
+  if (!token) return res.status(401).json({ message: "Unauthorized - No token found" });
+
+  let decoded;
   try {
-    console.log("🔍 Checking authentication via cookies...");
+    decoded = jwt.verify(token, JWT_SECRET);
+  } catch (err) {
+    res.clearCookie("token");
+    return res.status(401).json({ message: "Unauthorized - Invalid token" });
+  }
 
-    // ✅ Extract JWT token from cookies
-    const token = req.cookies.token;
-    if (!token) {
-      console.log("🚨 No token found in cookies");
-      return res.status(401).json({ message: "Unauthorized - No token found" });
-    }
-
-    // ✅ Verify token and decode user data
-    let decoded;
-    try {
-      decoded = jwt.verify(token, JWT_SECRET);
-    } catch (err) {
-      console.log("🚨 Invalid token:", err);
-      res.clearCookie("token"); // Clear corrupted token
-      return res.status(401).json({ message: "Unauthorized - Invalid token" });
-    }
-
-    console.log("✅ Decoded user:", decoded);
-
-    const result = await pool.query(fetchRestaurantsWithPurchasedCoupons, [
-      decoded.id,
-    ]);
+  try {
+    const result = await pool.query(fetchRestaurantsWithPurchasedCoupons, [decoded.id]);
     const restaurantsWithPurchasedCoupons = result.rows;
-
-    if (restaurantsWithPurchasedCoupons.length === 0) {
-      return res
-        .status(404)
-        .json({ message: "No coupons found for this user." });
-    }
 
     res.json({ restaurantsWithPurchasedCoupons });
   } catch (error) {
-    console.error("Error fetching user coupons:", error);
-    res.status(500).json({ message: "Failed to fetch user coupons." });
+    console.error("Error fetching restaurants with coupons:", error);
+    res.status(500).json({ message: "Failed to fetch restaurants." });
   }
 };
 
