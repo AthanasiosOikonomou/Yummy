@@ -16,6 +16,9 @@ const {
   getUserPoints,
   getFavorites,
   toggleFavoriteController,
+  requestResetPassword,
+  resetPassword,
+  checkResetPasswordToken,
 } = require("../controllers/userController");
 
 module.exports = (pool) => {
@@ -23,6 +26,14 @@ module.exports = (pool) => {
 
   // **Email & Password Authentication**
   router.post("/register", (req, res) => registerUser(req, res, pool));
+  router.post("/password/reset/request", (req, res) =>
+    requestResetPassword(req, res, pool)
+  );
+  router.post("/password/reset", (req, res) => resetPassword(req, res, pool));
+  router.post("/password/reset/validate/token", (req, res) =>
+    checkResetPasswordToken(req, res, pool)
+  );
+
   router.post("/login", (req, res) => loginUser(req, res, pool));
   router.patch("/update", (req, res) => updateUserDetails(req, res, pool));
   router.get("/profile", (req, res) => getUserProfile(req, res, pool));

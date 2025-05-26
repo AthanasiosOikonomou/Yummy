@@ -34,4 +34,19 @@ const sendVerificationEmail = async (user) => {
   await transporter.sendMail(mailOptions);
 };
 
-module.exports = sendVerificationEmail;
+// Send reset password email function
+const sendResetPasswordEmail = async (user, resetUrl) => {
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: user.email,
+    subject: "Yummy - Reset Password",
+    html: resetUrl,
+  };
+
+  await transporter.sendMail(mailOptions);
+};
+
+module.exports = {
+  sendVerificationEmail,
+  sendResetPasswordEmail,
+};
