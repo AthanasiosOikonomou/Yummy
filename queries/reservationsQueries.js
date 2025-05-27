@@ -7,19 +7,24 @@ const fetchReservationsByUser = `
 `;
 
 const fetchFilteredUserReservations = `
-    SELECT *
-    FROM reservations
-  `;
+  SELECT 
+    r.*,
+    sm.id AS sm_id,
+    sm.name AS sm_name,
+    sm.description AS sm_description,
+    c.id AS c_id,
+    c.description AS c_description
+  FROM reservations r
+  LEFT JOIN special_menus sm ON r.special_menu_id = sm.id
+  LEFT JOIN coupons c ON r.coupon_id = c.id
+`;
 
 const countFilteredUserReservations = `
-    SELECT COUNT(*) AS count
-    FROM reservations
-  `;
+  SELECT COUNT(*) FROM reservations r
+`;
 
 const fetchReservationById = `
-  SELECT *
-  FROM reservations
-  WHERE id = $1
+  SELECT * FROM reservations WHERE id = $1 AND user_id = $2;
 `;
 
 const createReservationQuery = `
@@ -35,9 +40,9 @@ const createReservationQuery = `
       WHERE id = $8
     )
   INSERT INTO reservations (
-    user_id, restaurant_id, date, time, guest_count, status, special_menu_id, coupon_id
+  user_id, restaurant_id, date, time, guest_count, status, special_menu_id, coupon_id, reservation_notes
   )
-  SELECT $1, $2, $3, $4, $5, $6, $7, $8
+  SELECT $1, $2, $3, $4, $5, $6, $7, $8, $9
   WHERE 
     (
       ($7 IS NULL OR EXISTS (
@@ -53,14 +58,15 @@ const createReservationQuery = `
 
 const deleteReservationQuery = `
   DELETE FROM reservations
-  WHERE id = $1
+  WHERE id = $1 AND user_id = $2
   RETURNING id;
 `;
 
-const cancelReservationQuery = `UPDATE reservations
-SET status = $1
-WHERE id = $2
-RETURNING *;
+const cancelReservationQuery = `
+  UPDATE reservations
+  SET status = 'cancelled', cancellation_reason = $1
+  WHERE id = $2 AND user_id = $3
+  RETURNING *;
 `;
 
 module.exports = {

@@ -518,35 +518,39 @@ const getFavorites = async (req, res, pool) => {
 
 const toggleFavoriteController = async (req, res, pool) => {
   try {
-    console.log("🔍 Checking authentication via cookies...");
-
-    // ✅ Extract JWT token from cookies
     const token = req.cookies.token;
     if (!token) {
-      console.log("🚨 No token found in cookies");
-      return res.status(401).json({ message: "Unauthorized - No token found" });
+      return res.status(401).json({ message: "Δεν είστε συνδεδεμένος." });
     }
 
-    // ✅ Verify token and decode user data
     let decoded;
     try {
       decoded = jwt.verify(token, JWT_SECRET);
     } catch (err) {
-      console.log("🚨 Invalid token:", err);
-      res.clearCookie("token"); // Clear corrupted token
-      return res.status(401).json({ message: "Unauthorized - Invalid token" });
+      res.clearCookie("token");
+      return res.status(401).json({ message: "Μη έγκυρο token." });
     }
 
-    console.log("✅ Decoded user:", decoded);
-
     const user_id = decoded.id;
-
     const { restaurant_id } = req.body;
 
     if (!restaurant_id) {
       return res
         .status(400)
-        .json({ error: "restaurant_id is required in the body" });
+        .json({ error: "Λείπει το ID του εστιατορίου." });
+    }
+
+    // ✅ Έλεγχος αν ο χρήστης έχει επιβεβαιωθεί (confirmed_user)
+    const userResult = await pool.query(
+      "SELECT confirmed_user FROM users WHERE id = $1",
+      [user_id]
+    );
+    const isConfirmed = userResult.rows[0]?.confirmed_user;
+
+    if (!isConfirmed) {
+      return res
+        .status(403)
+        .json({ message: "Πρέπει να επιβεβαιώσεις τον λογαριασμό σου." });
     }
 
     const checkForFavorites = await pool.query(checkFavorites, [
@@ -555,26 +559,18 @@ const toggleFavoriteController = async (req, res, pool) => {
     ]);
 
     if (checkForFavorites.rows.length > 0) {
-      // If exists, delete it
-      const removeFavorites = await pool.query(deleteFavorite, [
-        user_id,
-        restaurant_id,
-      ]);
-      res.status(200).json({ removed: true });
+      await pool.query(deleteFavorite, [user_id, restaurant_id]);
+      return res.status(200).json({ removed: true });
     } else {
-      // If not exists, insert it
-      const insertFavorite = await pool.query(addFavorite, [
-        user_id,
-        restaurant_id,
-      ]);
-      res.status(201).json({ added: true });
+      await pool.query(addFavorite, [user_id, restaurant_id]);
+      return res.status(201).json({ added: true });
     }
-    //
   } catch (error) {
     console.error("Error toggling favorite:", error);
-    res.status(500).json({ error: "Failed to toggle favorite" });
+    res.status(500).json({ error: "Κάτι πήγε στραβά." });
   }
 };
+
 
 module.exports = {
   registerUser,

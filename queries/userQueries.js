@@ -40,6 +40,8 @@ const getUserFavoritesCount = `
   WHERE user_id = $1
 `;
 
+const updateUserPointsQuery = `UPDATE users SET loyalty_points = $1 WHERE id = $2`;
+
 const getconfirmed_userStatus = "SELECT confirmed_user FROM users WHERE id = $1";
 
 module.exports = {
@@ -55,4 +57,5 @@ module.exports = {
   addFavorite,
   getUserFavoritesCount,
   getconfirmed_userStatus,
+  updateUserPointsQuery
 };
