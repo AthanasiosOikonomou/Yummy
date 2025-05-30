@@ -49,7 +49,7 @@ const sendVerificationEmail = async (user) => {
       <!-- Call to Action Button -->
       <div style="text-align: center; margin: 40px 0;">
         <a href="${verificationUrl}" 
-           style="display: inline-block; background-color: #b91c1c; color: black; padding: 14px 30px; text-decoration: none; font-size: 16px; border-radius: 50px; font-weight: 400; transition: background 0.3s ease;">
+           style="display: inline-block; background-color: #b91c1c; color: white; padding: 14px 30px; text-decoration: none; font-size: 16px; border-radius: 50px; font-weight: 400; transition: background 0.3s ease;">
           Επιβεβαίωση Email
         </a>
       </div>
