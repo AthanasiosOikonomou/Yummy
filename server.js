@@ -21,6 +21,7 @@ const testimonialRoutes = require("./routes/testimonials");
 const reservationRoutes = require("./routes/reservations");
 const couponsRoutes = require("./routes/coupons");
 const ownerRoutes = require("./routes/owner");
+const adminRoutes = require("./routes/admin");
 
 const app = express();
 
@@ -52,6 +53,7 @@ app.use("/testimonials", testimonialRoutes(pool));
 app.use("/reservations", reservationRoutes(pool));
 app.use("/coupons", couponsRoutes(pool));
 app.use("/owner", ownerRoutes(pool));
+app.use("/admin", adminRoutes(pool));
 
 // **Serve Google Frontend**
 app.get("/", (req, res) => {

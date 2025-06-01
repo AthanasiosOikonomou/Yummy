@@ -5,7 +5,9 @@ const {
   updateOwnerPassword,
   getOwnerById,
   updateOwner,
+  confirmOwner,
 } = require("../queries/ownerQueries");
+
 const {
   ownerSchema,
   loginSchemaOwner,
@@ -344,6 +346,92 @@ const updateOwnerDetails = async (req, res, pool) => {
   }
 };
 
+const getOwnerProfile = async (req, res, pool) => {
+  try {
+    console.log("🔍 Checking authentication via cookies...");
+
+    // ✅ Extract JWT token from cookies
+    const token = req.cookies.token;
+    if (!token) {
+      console.log("🚨 No token found in cookies");
+      return res.status(401).json({ message: "Unauthorized - No token found" });
+    }
+
+    // ✅ Verify token and decode user data
+    let decoded;
+    try {
+      decoded = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      console.log("🚨 Invalid token:", err);
+      res.clearCookie("token"); // Clear corrupted token
+      return res.status(401).json({ message: "Unauthorized - Invalid token" });
+    }
+
+    console.log("✅ Decoded owner:", decoded);
+
+    // ✅ Fetch user from database using decoded ID
+    const ownerQuery = await pool.query(getOwnerById, [decoded.id]);
+    if (ownerQuery.rows.length === 0) {
+      console.log("🚨 Owner not found in database");
+      return res.status(404).json({ message: "Owner not found" });
+    }
+
+    console.log("✅ Owner found:", ownerQuery.rows[0]);
+    res.json(ownerQuery.rows[0]);
+  } catch (error) {
+    console.error("❌ Error in getOwnerProfile:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+const verifyOwnerEmail = async (req, res, pool) => {
+  try {
+    const { token } = req.query;
+    if (!token)
+      return res.status(400).json({ message: "Invalid or expired token" });
+
+    // Verify token
+    const decoded = jwt.verify(token, JWT_SECRET);
+
+    // Update user as verified
+    const setConfirmedOwner = await pool.query(confirmOwner, [decoded.id]);
+    console.log(setConfirmedOwner);
+    res.json({ message: "Email verified successfully. You can now log in." });
+  } catch (error) {
+    res.status(500).json({ message: "Invalid or expired token" });
+  }
+};
+
+const resendVerificationEmailToOwner = async (req, res, pool) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ message: "Email is required." });
+
+  try {
+    // Check if user exists
+    const existingOwner = await pool.query(getOwnerByEmail, [email]);
+
+    if (existingOwner.rows.length === 0) {
+      return res.status(404).json({ message: "Owner not found." });
+    }
+
+    const owner = existingOwner.rows[0];
+
+    // Check if already verified
+    if (owner.is_verified) {
+      return res.status(400).json({ message: "Owner is already verified." });
+    }
+
+    await sendVerificationEmail(owner);
+
+    res.json({ message: "Verification email resent! Check your inbox." });
+  } catch (error) {
+    console.error("Error in resendVerificationEmail:", error);
+    res.status(500).json({
+      message: "Error resending verification email. Please try again later.",
+    });
+  }
+};
+
 module.exports = {
   registerOwner,
   checkAuthStatus,
@@ -353,4 +441,7 @@ module.exports = {
   checkResetPasswordTokenOwner,
   loginOwner,
   updateOwnerDetails,
+  getOwnerProfile,
+  verifyOwnerEmail,
+  resendVerificationEmailToOwner,
 };

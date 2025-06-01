@@ -11,6 +11,9 @@ const {
   checkResetPasswordTokenOwner,
   loginOwner,
   updateOwnerDetails,
+  getOwnerProfile,
+  verifyOwnerEmail,
+  resendVerificationEmailToOwner,
 } = require("../controllers/ownerController");
 
 module.exports = (pool) => {
@@ -30,11 +33,11 @@ module.exports = (pool) => {
 
   router.post("/login", (req, res) => loginOwner(req, res, pool));
   router.patch("/update", (req, res) => updateOwnerDetails(req, res, pool));
-  //   router.get("/profile", (req, res) => getOwnerProfile(req, res, pool));
-  //   router.get("/verify-email", (req, res) => verifyOwnerEmail(req, res, pool));
-  //   router.post("/resend-verification", (req, res) =>
-  //     resendVerificationEmailToOwner(req, res, pool)
-  //   );
+  router.get("/profile", (req, res) => getOwnerProfile(req, res, pool));
+  router.get("/verify-email", (req, res) => verifyOwnerEmail(req, res, pool));
+  router.post("/resend-verification", (req, res) =>
+    resendVerificationEmailToOwner(req, res, pool)
+  );
 
   // **Google Authentication**
   router.get(

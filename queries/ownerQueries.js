@@ -16,6 +16,8 @@ const updateOwner = (fields) =>
     fields.split(", ").length + 1
   } RETURNING id, name, email, phone, google_id, facebook_id;`;
 
+const confirmOwner = "UPDATE owners SET confirmed_user = true WHERE id = $1";
+
 module.exports = {
   getOwnerByEmail,
   insertOwner,
@@ -23,4 +25,5 @@ module.exports = {
   updateOwnerPassword,
   getOwnerById,
   updateOwner,
+  confirmOwner,
 };
