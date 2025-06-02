@@ -4,6 +4,9 @@ const {
   purchaseCoupon,
   getAvailableCoupons,
   getRestaurantsWithPurchasedCoupons,
+  createCoupon,
+  editCoupon,
+  deleteCoupon,
 } = require("../controllers/couponsController");
 
 module.exports = (pool) => {
@@ -15,6 +18,9 @@ module.exports = (pool) => {
   router.get("/purchased/restaurants", (req, res) =>
     getRestaurantsWithPurchasedCoupons(req, res, pool)
   );
+  router.post("/creation", (req, res) => createCoupon(req, res, pool));
+  router.patch("/edit", (req, res) => editCoupon(req, res, pool));
+  router.delete("/delete", (req, res) => deleteCoupon(req, res, pool));
 
   return router;
 };
