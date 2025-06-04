@@ -15,16 +15,16 @@ const pool = require("./config/db.config");
 const { envPORT, FRONT_END_URL } = process.env;
 
 // import routes
-const userRoutes = require("./routes/user");
-const restaurantRoutes = require("./routes/restaurant");
-const testimonialRoutes = require("./routes/testimonials");
-const reservationRoutes = require("./routes/reservations");
-const couponsRoutes = require("./routes/coupons");
-const ownerRoutes = require("./routes/owner");
-const adminRoutes = require("./routes/admin");
-const menuItemsRoutes = require("./routes/menuItems");
-const specialMenusRoutes = require("./routes/specialMenus");
-const specialMenuItemsRoutes = require("./routes/specialMenuItems");
+const userRoutes = require("./routes/api/v1/user");
+const restaurantRoutes = require("./routes/api/v1/restaurant");
+const testimonialRoutes = require("./routes/api/v1/testimonials");
+const reservationRoutes = require("./routes/api/v1/reservations");
+const couponsRoutes = require("./routes/api/v1/coupons");
+const ownerRoutes = require("./routes/api/v1/owner");
+const adminRoutes = require("./routes/api/v1/admin");
+const menuItemsRoutes = require("./routes/api/v1/menuItems");
+const specialMenusRoutes = require("./routes/api/v1/specialMenus");
+const specialMenuItemsRoutes = require("./routes/api/v1/specialMenuItems");
 
 const app = express();
 

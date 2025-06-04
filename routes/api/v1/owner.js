@@ -1,6 +1,6 @@
 const express = require("express");
-const passportGoogle = require("../middleware/authGoogle");
-const passportFacebook = require("../middleware/authFacebook");
+const passportGoogle = require("../../../middleware/authGoogle");
+const passportFacebook = require("../../../middleware/authFacebook");
 
 const {
   registerOwner,
@@ -14,7 +14,7 @@ const {
   getOwnerProfile,
   verifyOwnerEmail,
   resendVerificationEmailToOwner,
-} = require("../controllers/ownerController");
+} = require("../../../controllers/ownerController");
 
 module.exports = (pool) => {
   const router = express.Router();

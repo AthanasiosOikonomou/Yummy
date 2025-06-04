@@ -8,7 +8,7 @@ const {
   getFilteredReservations,
   patchReservationAsOwner,
   getOwnerFilteredReservations,
-} = require("../controllers/reservationsController");
+} = require("../../../controllers/reservationsController");
 
 module.exports = (pool) => {
   const router = express.Router();

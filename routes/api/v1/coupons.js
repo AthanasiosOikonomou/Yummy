@@ -7,7 +7,7 @@ const {
   createCoupon,
   editCoupon,
   deleteCoupon,
-} = require("../controllers/couponsController");
+} = require("../../../controllers/couponsController");
 
 module.exports = (pool) => {
   const router = express.Router();

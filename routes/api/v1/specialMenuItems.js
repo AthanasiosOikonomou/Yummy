@@ -3,7 +3,7 @@ const express = require("express");
 const {
   createSpecialMenuItem,
   deleteSpecialMenuItem,
-} = require("../controllers/specialMenuItemsController");
+} = require("../../../controllers/specialMenuItemsController");
 
 module.exports = (pool) => {
   const router = express.Router();

@@ -1,13 +1,13 @@
 // routes/restaurantRoutes.js
 const express = require("express");
-const cookieJWTAuth = require("../middleware/cookieJWTAuth");
+const cookieJWTAuth = require("../../../middleware/cookieJWTAuth");
 const {
   getTrendingRestaurants,
   getDiscountedRestaurants,
   getFilteredRestaurants,
   getRestaurantById,
   updateRestaurant,
-} = require("../controllers/restaurantController");
+} = require("../../../controllers/restaurantController");
 
 module.exports = (pool) => {
   const router = express.Router();
