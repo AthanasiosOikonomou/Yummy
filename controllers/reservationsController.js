@@ -12,7 +12,16 @@ const {
   cancelReservationQuery,
   fetchFilteredUserReservations,
   countFilteredUserReservations,
+  patchReservationAsOwnerQuery,
+  verifyReservationOwnership,
+  fetchOwnerFilteredReservations,
+  countOwnerFilteredReservations,
 } = require("../queries/reservationsQueries");
+
+const {
+  patchReservationAsOwnerSchema,
+  getOwnerFilteredReservationsSchema,
+} = require("../validators/reservationsValidator");
 
 const { getConfirmedUserStatus } = require("../queries/userQueries");
 
@@ -339,6 +348,144 @@ const getFilteredReservations = async (req, res, pool) => {
   }
 };
 
+const patchReservationAsOwner = async (req, res, pool) => {
+  console.log("🔐 Validating owner via token...");
+
+  const token = req.cookies.token;
+  if (!token)
+    return res.status(401).json({ message: "Unauthorized - No token" });
+
+  let decoded;
+  try {
+    decoded = jwt.verify(token, JWT_SECRET);
+  } catch (err) {
+    console.log("❌ Invalid token:", err);
+    res.clearCookie("token");
+    return res.status(401).json({ message: "Unauthorized - Invalid token" });
+  }
+
+  const { error, value } = patchReservationAsOwnerSchema.validate(req.body);
+  if (error)
+    return res
+      .status(400)
+      .json({ message: "Validation failed", details: error.details });
+
+  const { status, cancellation_reason, reservation_id } = value;
+
+  try {
+    const ownership = await pool.query(verifyReservationOwnership, [
+      reservation_id,
+      decoded.id,
+    ]);
+
+    if (ownership.rowCount === 0) {
+      return res
+        .status(403)
+        .json({ message: "Forbidden - You do not own this restaurant" });
+    }
+
+    const { rows } = await pool.query(patchReservationAsOwnerQuery, [
+      status,
+      cancellation_reason,
+      reservation_id,
+    ]);
+
+    res.status(200).json({
+      message: "Reservation updated successfully",
+      reservation: rows[0],
+    });
+  } catch (err) {
+    console.error("Error patching reservation as owner:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+const getOwnerFilteredReservations = async (req, res, pool) => {
+  const token = req.cookies.token;
+  if (!token)
+    return res.status(401).json({ message: "Unauthorized - No token found" });
+
+  let decoded;
+  try {
+    decoded = jwt.verify(token, JWT_SECRET);
+  } catch (err) {
+    res.clearCookie("token");
+    return res.status(401).json({ message: "Unauthorized - Invalid token" });
+  }
+
+  const { error, value } = getOwnerFilteredReservationsSchema.validate(
+    req.query
+  );
+  if (error)
+    return res
+      .status(400)
+      .json({ message: "Validation failed", details: error.details });
+
+  const page = parseInt(req.query.page, 10) || 1;
+  const pageSize = parseInt(req.query.pageSize, 10) || 10;
+  const offset = (page - 1) * pageSize;
+  const limit = pageSize;
+
+  const filters = [];
+  const values = [decoded.id];
+  let idx = 2;
+
+  if (req.query.status) {
+    filters.push(`r.status ILIKE $${idx}`);
+    values.push(`%${req.query.status}%`);
+    idx++;
+  }
+
+  if (req.query.date) {
+    filters.push(
+      `(r.date AT TIME ZONE 'UTC' AT TIME ZONE 'Europe/Athens')::date = $${idx}`
+    );
+    values.push(req.query.date);
+    idx++;
+  }
+
+  const whereClause = filters.length ? ` AND ${filters.join(" AND ")}` : "";
+
+  try {
+    const dataQuery = `
+      ${fetchOwnerFilteredReservations}
+      ${whereClause}
+      ORDER BY r.date DESC, r.time ASC
+      LIMIT $${idx} OFFSET $${idx + 1}
+    `;
+    values.push(limit, offset);
+
+    const { rows: reservations } = await pool.query(dataQuery, values);
+
+    const countQuery = `
+      ${countOwnerFilteredReservations}
+      ${whereClause}
+    `;
+    const countValues = values.slice(0, idx - 1);
+    const { rows: countRows } = await pool.query(countQuery, countValues);
+    const totalCount = parseInt(countRows[0].count, 10);
+
+    const currentPage = page;
+    const recordsOnCurrentPage = reservations.length;
+    const viewedRecords = (currentPage - 1) * pageSize + recordsOnCurrentPage;
+    const remainingRecords = totalCount - viewedRecords;
+
+    res.json({
+      reservations,
+      Pagination: {
+        currentPage,
+        recordsOnCurrentPage,
+        viewedRecords,
+        remainingRecords,
+        total: totalCount,
+      },
+    });
+  } catch (err) {
+    console.error("Error fetching owner reservations:", err);
+    res.status(500).json({ message: "Failed to load reservations." });
+  }
+};
+
 module.exports = {
   getUserReservations,
   getReservationById,
@@ -346,4 +493,6 @@ module.exports = {
   deleteReservation,
   cancelReservation,
   getFilteredReservations,
+  patchReservationAsOwner,
+  getOwnerFilteredReservations,
 };

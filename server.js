@@ -22,6 +22,9 @@ const reservationRoutes = require("./routes/reservations");
 const couponsRoutes = require("./routes/coupons");
 const ownerRoutes = require("./routes/owner");
 const adminRoutes = require("./routes/admin");
+const menuItemsRoutes = require("./routes/menuItems");
+const specialMenusRoutes = require("./routes/specialMenus");
+const specialMenuItemsRoutes = require("./routes/specialMenuItems");
 
 const app = express();
 
@@ -54,6 +57,9 @@ app.use("/reservations", reservationRoutes(pool));
 app.use("/coupons", couponsRoutes(pool));
 app.use("/owner", ownerRoutes(pool));
 app.use("/admin", adminRoutes(pool));
+app.use("/menuItems", menuItemsRoutes(pool));
+app.use("/specialMenus", specialMenusRoutes(pool));
+app.use("/special-menu-items", specialMenuItemsRoutes(pool));
 
 // **Serve Google Frontend**
 app.get("/", (req, res) => {
