@@ -50,16 +50,16 @@ app.use(rateLimiter);
 app.use(cors({ origin: FRONT_END_URL, credentials: true }));
 
 // routes
-app.use("/user", userRoutes(pool));
-app.use("/restaurant", restaurantRoutes(pool));
-app.use("/testimonials", testimonialRoutes(pool));
-app.use("/reservations", reservationRoutes(pool));
-app.use("/coupons", couponsRoutes(pool));
-app.use("/owner", ownerRoutes(pool));
-app.use("/admin", adminRoutes(pool));
-app.use("/menuItems", menuItemsRoutes(pool));
-app.use("/specialMenus", specialMenusRoutes(pool));
-app.use("/special-menu-items", specialMenuItemsRoutes(pool));
+app.use("/api/v1/user", userRoutes(pool));
+app.use("/api/v1/restaurant", restaurantRoutes(pool));
+app.use("/api/v1/testimonials", testimonialRoutes(pool));
+app.use("/api/v1/reservations", reservationRoutes(pool));
+app.use("/api/v1/coupons", couponsRoutes(pool));
+app.use("/api/v1/owner", ownerRoutes(pool));
+app.use("/api/v1/admin", adminRoutes(pool));
+app.use("/api/v1/menuItems", menuItemsRoutes(pool));
+app.use("/api/v1/specialMenus", specialMenusRoutes(pool));
+app.use("/api/v1/special-menu-items", specialMenuItemsRoutes(pool));
 
 // **Serve Google Frontend**
 app.get("/", (req, res) => {
