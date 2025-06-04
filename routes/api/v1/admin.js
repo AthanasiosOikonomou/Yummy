@@ -3,7 +3,7 @@ const {
   createRestaurant,
   registerAdmin,
   loginAdmin,
-} = require("../controllers/adminController");
+} = require("../../../controllers/adminController");
 
 module.exports = (pool) => {
   const router = express.Router();

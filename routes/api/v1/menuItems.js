@@ -4,7 +4,7 @@ const {
   createMenuItem,
   updateMenuItem,
   deleteMenuItem,
-} = require("../controllers/menuItemsController");
+} = require("../../../controllers/menuItemsController");
 
 module.exports = (pool) => {
   const router = express.Router();

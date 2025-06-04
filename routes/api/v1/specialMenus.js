@@ -4,7 +4,7 @@ const {
   createSpecialMenu,
   updateSpecialMenu,
   deleteSpecialMenu,
-} = require("../controllers/specialMenusController");
+} = require("../../../controllers/specialMenusController");
 
 module.exports = (pool) => {
   const router = express.Router();

@@ -1,6 +1,6 @@
 const express = require("express");
-const passportGoogle = require("../middleware/authGoogle");
-const passportFacebook = require("../middleware/authFacebook");
+const passportGoogle = require("../../../middleware/authGoogle");
+const passportFacebook = require("../../../middleware/authFacebook");
 
 const {
   registerUser,
@@ -19,7 +19,7 @@ const {
   requestResetPassword,
   resetPassword,
   checkResetPasswordToken,
-} = require("../controllers/userController");
+} = require("../../../controllers/userController");
 
 module.exports = (pool) => {
   const router = express.Router();

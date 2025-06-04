@@ -1,5 +1,7 @@
 const express = require("express");
-const { fetchTestimonials } = require("../controllers/testimonialsController");
+const {
+  fetchTestimonials,
+} = require("../../../controllers/testimonialsController");
 
 module.exports = (pool) => {
   const router = express.Router();
