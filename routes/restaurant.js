@@ -6,6 +6,7 @@ const {
   getDiscountedRestaurants,
   getFilteredRestaurants,
   getRestaurantById,
+  updateRestaurant,
 } = require("../controllers/restaurantController");
 
 module.exports = (pool) => {
@@ -17,6 +18,7 @@ module.exports = (pool) => {
   router.get("/discounted", (req, res) =>
     getDiscountedRestaurants(req, res, pool)
   );
+  router.patch("/:id", (req, res) => updateRestaurant(req, res, pool));
 
   return router;
 };
