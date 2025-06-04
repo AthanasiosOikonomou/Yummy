@@ -212,13 +212,17 @@ This project includes a simple frontend authentication page:
 
 - `loginPage.html` - Displays login buttons for Google and Facebook.
 - `loginPage.js` - Handles UI updates and interactions.
-- `loginPage.js` - Displays the css of the loginPage.
+- `loginPage.css` - Displays the css of the loginPage.
 - `verify.html` - Verification process landing page via email.
 - `verify.js` - Verification process script.
+- `reset-password.html` - Displays the reset password logic.
+- `reset-password.css` - Displays the css of the reset password.
+- `reset-password-owner.html` - Displays the reset password owner logic.
+- `reset-password-owner.css` - Displays the css of the reset password owner.
 
 ## Future Implementations
 
-1. Email Verification. (done)
-2. Facebook Authorization. (Done)
+1. Image upload for restaurants/ menus/ profile image of users.
+2. Dashboard analytics for owners.
 
 Developed by Me! Athanasios Oikonomou.
