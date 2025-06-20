@@ -6,7 +6,9 @@ const {
   deleteReservation,
   cancelReservation,
   getFilteredReservations,
-} = require("../controllers/reservationsController");
+  patchReservationAsOwner,
+  getOwnerFilteredReservations,
+} = require("../../../controllers/reservationsController");
 
 module.exports = (pool) => {
   const router = express.Router();
@@ -24,6 +26,11 @@ module.exports = (pool) => {
   router.get("/:id", (req, res) => getReservationById(req, res, pool));
   router.post("/", (req, res) => createReservation(req, res, pool));
   router.delete("/:id", (req, res) => deleteReservation(req, res, pool));
+
+  router.patch("/owner", (req, res) => patchReservationAsOwner(req, res, pool));
+  router.get("/filtered/owner", (req, res) =>
+    getOwnerFilteredReservations(req, res, pool)
+  );
 
   return router;
 };

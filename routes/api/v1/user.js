@@ -1,6 +1,6 @@
 const express = require("express");
-const passportGoogle = require("../middleware/authGoogle");
-const passportFacebook = require("../middleware/authFacebook");
+const passportGoogle = require("../../../middleware/authGoogle");
+const passportFacebook = require("../../../middleware/authFacebook");
 
 const {
   registerUser,
@@ -16,13 +16,24 @@ const {
   getUserPoints,
   getFavorites,
   toggleFavoriteController,
-} = require("../controllers/userController");
+  requestResetPassword,
+  resetPassword,
+  checkResetPasswordToken,
+} = require("../../../controllers/userController");
 
 module.exports = (pool) => {
   const router = express.Router();
 
   // **Email & Password Authentication**
   router.post("/register", (req, res) => registerUser(req, res, pool));
+  router.post("/password/reset/request", (req, res) =>
+    requestResetPassword(req, res, pool)
+  );
+  router.post("/password/reset", (req, res) => resetPassword(req, res, pool));
+  router.post("/password/reset/validate/token", (req, res) =>
+    checkResetPasswordToken(req, res, pool)
+  );
+
   router.post("/login", (req, res) => loginUser(req, res, pool));
   router.patch("/update", (req, res) => updateUserDetails(req, res, pool));
   router.get("/profile", (req, res) => getUserProfile(req, res, pool));

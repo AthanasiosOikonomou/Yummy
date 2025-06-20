@@ -4,7 +4,7 @@ const passport = require("passport");
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const pool = require("../config/db.config");
 const { getUserByEmail, insertUser } = require("../queries/userQueries");
-const sendVerificationEmail = require("../utils/sendVerificationEmail");
+const { sendVerificationEmail } = require("../utils/sendVerificationEmail");
 
 const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_CALLBACK_URL } =
   process.env;
@@ -38,7 +38,14 @@ passport.use(
             false,
             null,
           ]);
-          await sendVerificationEmail(newGoogleUser.rows[0]);
+
+          try {
+            console.log("Calling sendVerificationEmail...");
+            await sendVerificationEmail(newGoogleUser.rows[0]);
+            console.log("Verification email sent.");
+          } catch (emailErr) {
+            console.error("Error sending verification email:", emailErr);
+          }
         }
 
         return done(null, { google_id, name, email });

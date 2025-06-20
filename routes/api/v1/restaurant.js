@@ -1,12 +1,13 @@
 // routes/restaurantRoutes.js
 const express = require("express");
-const cookieJWTAuth = require("../middleware/cookieJWTAuth");
+const cookieJWTAuth = require("../../../middleware/cookieJWTAuth");
 const {
   getTrendingRestaurants,
   getDiscountedRestaurants,
   getFilteredRestaurants,
   getRestaurantById,
-} = require("../controllers/restaurantController");
+  updateRestaurant,
+} = require("../../../controllers/restaurantController");
 
 module.exports = (pool) => {
   const router = express.Router();
@@ -17,6 +18,7 @@ module.exports = (pool) => {
   router.get("/discounted", (req, res) =>
     getDiscountedRestaurants(req, res, pool)
   );
+  router.patch("/:id", (req, res) => updateRestaurant(req, res, pool));
 
   return router;
 };

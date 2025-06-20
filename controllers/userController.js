@@ -1,12 +1,17 @@
 require("dotenv").config();
 
-const sendVerificationEmail = require("../utils/sendVerificationEmail");
+const {
+  sendVerificationEmail,
+  sendResetPasswordEmail,
+} = require("../utils/sendVerificationEmail");
 
 const jwt = require("jsonwebtoken");
 const passport = require("passport");
 const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
+const { v4: uuidv4 } = require("uuid");
 
-const { JWT_SECRET, NODE_ENV } = process.env;
+const { JWT_SECRET, NODE_ENV, FRONT_END_URL, envPORT } = process.env;
 
 const {
   userSchema,
@@ -26,6 +31,8 @@ const {
   deleteFavorite,
   addFavorite,
   getUserFavoritesCount,
+  updateUserPassword,
+  insertPasswordReset,
 } = require("../queries/userQueries");
 
 /** Google Authentication Callback */
@@ -571,6 +578,112 @@ const toggleFavoriteController = async (req, res, pool) => {
   }
 };
 
+const requestResetPassword = async (req, res, pool) => {
+  try {
+    // ✅ Validate email input
+    const { error, value } = userUpdateSchema.validate(req.body);
+    if (error) return res.status(400).json({ error: error.details[0].message });
+
+    const { email } = value;
+
+    // ✅ Check if user exists
+    const userResult = await pool.query(getUserByEmail, [email]);
+    if (userResult.rows.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No account found with this email" });
+    }
+
+    const user = userResult.rows[0];
+
+    const token = crypto.randomBytes(32).toString("hex"); // secure token
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 min
+
+    const updatePassword = await pool.query(insertPasswordReset, [
+      user.id,
+      token,
+      expiresAt,
+    ]);
+
+    // ✅ Construct reset URL
+    const resetUrl = `${FRONT_END_URL}:${envPORT}/reset-password.html?token=${token}`;
+
+    // ✅ Send email
+    await sendResetPasswordEmail(user, resetUrl);
+
+    res.json({ message: "Reset link sent. Check your email." });
+  } catch (err) {
+    console.error("❌ Error in requestPasswordReset:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+const resetPassword = async (req, res, pool) => {
+  try {
+    const { token, password } = req.body;
+
+    const result = await pool.query(
+      `SELECT * FROM password_resets WHERE token = $1`,
+      [token]
+    );
+
+    const resetRequest = result.rows[0];
+    if (!resetRequest || resetRequest.used) {
+      return res
+        .status(400)
+        .json({ message: "Invalid or expired reset token." });
+    }
+
+    if (new Date() > new Date(resetRequest.expires_at)) {
+      return res.status(400).json({ message: "Reset token has expired." });
+    }
+
+    // ✅ Get the user
+    const userResult = await pool.query(`SELECT * FROM users WHERE id = $1`, [
+      resetRequest.user_id,
+    ]);
+    const user = userResult.rows[0];
+
+    // ✅ Hash and update the password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+    await pool.query(updateUserPassword, [hashedPassword, user.id]);
+
+    // ✅ Mark the token as used
+    await pool.query(`UPDATE password_resets SET used = TRUE WHERE id = $1`, [
+      resetRequest.id,
+    ]);
+
+    res.json({ message: "Password successfully updated." });
+  } catch (err) {
+    console.error("❌ Error in resetPassword:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+const checkResetPasswordToken = async (req, res, pool) => {
+  try {
+    const { token } = req.body;
+    const result = await pool.query(
+      `SELECT * FROM password_resets WHERE token = $1`,
+      [token]
+    );
+
+    const resetRequest = result.rows[0];
+    if (!resetRequest || resetRequest.used) {
+      return res
+        .status(400)
+        .json({ message: "Invalid or expired reset token." });
+    }
+
+    if (new Date() > new Date(resetRequest.expires_at)) {
+      return res.status(400).json({ message: "Reset token has expired." });
+    }
+  } catch (err) {
+    console.error("❌ Error in resetPassword:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
 
 module.exports = {
   registerUser,
@@ -587,4 +700,7 @@ module.exports = {
   getUserPoints,
   getFavorites,
   toggleFavoriteController,
+  requestResetPassword,
+  resetPassword,
+  checkResetPasswordToken,
 };

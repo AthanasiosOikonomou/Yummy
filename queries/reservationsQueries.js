@@ -69,6 +69,36 @@ const cancelReservationQuery = `
   RETURNING *;
 `;
 
+const patchReservationAsOwnerQuery = `
+  UPDATE reservations
+  SET
+    status = COALESCE($1, status),
+    cancellation_reason = COALESCE($2, cancellation_reason)
+  WHERE id = $3
+  RETURNING *;
+`;
+
+const verifyReservationOwnership = `
+  SELECT 1
+  FROM reservations r
+  JOIN restaurants res ON r.restaurant_id = res.id
+  WHERE r.id = $1 AND res.owner_id = $2;
+`;
+
+const fetchOwnerFilteredReservations = `
+  SELECT r.*
+  FROM reservations r
+  JOIN restaurants res ON r.restaurant_id = res.id
+  WHERE res.owner_id = $1
+`;
+
+const countOwnerFilteredReservations = `
+  SELECT COUNT(*)
+  FROM reservations r
+  JOIN restaurants res ON r.restaurant_id = res.id
+  WHERE res.owner_id = $1
+`;
+
 module.exports = {
   fetchReservationsByUser,
   fetchReservationById,
@@ -77,4 +107,8 @@ module.exports = {
   cancelReservationQuery,
   fetchFilteredUserReservations,
   countFilteredUserReservations,
+  patchReservationAsOwnerQuery,
+  verifyReservationOwnership,
+  fetchOwnerFilteredReservations,
+  countOwnerFilteredReservations,
 };

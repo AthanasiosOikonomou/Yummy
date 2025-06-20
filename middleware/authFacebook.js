@@ -4,7 +4,7 @@ const passport = require("passport");
 const FacebookStrategy = require("passport-facebook").Strategy;
 const pool = require("../config/db.config");
 const { getUserByEmail, insertUser } = require("../queries/userQueries");
-const sendVerificationEmail = require("../utils/sendVerificationEmail");
+const { sendVerificationEmail } = require("../utils/sendVerificationEmail");
 
 const { FACEBOOK_CLIENT_ID, FACEBOOK_CLIENT_SECRET, FACEBOOK_CALLBACK_URL } =
   process.env;

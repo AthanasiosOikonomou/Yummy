@@ -12,10 +12,16 @@ const confirmUser = "UPDATE users SET confirmed_user = true WHERE id = $1";
 const insertUser =
   "INSERT INTO users (name, email, password, phone, role, google_id, facebook_id, newsletterSubscribed, profile_image) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *";
 
+const insertPasswordReset =
+  "INSERT INTO password_resets (user_id, token, expires_at) VALUES ($1, $2, $3) RETURNING *";
+
 const updateUser = (fields) =>
   `UPDATE users SET ${fields} WHERE id = $${
     fields.split(", ").length + 1
   } RETURNING id, name, email, phone, google_id, facebook_id;`;
+
+const updateUserPassword = `UPDATE users SET password = $1 WHERE id = $2
+  RETURNING id, name, email`;
 
 const fetchUserPoints = "SELECT loyalty_points FROM users WHERE id = $1";
 
@@ -42,7 +48,7 @@ const getUserFavoritesCount = `
 
 const updateUserPointsQuery = `UPDATE users SET loyalty_points = $1 WHERE id = $2`;
 
-const getconfirmed_userStatus = "SELECT confirmed_user FROM users WHERE id = $1";
+const getConfirmedUserStatus = "SELECT confirmed_user FROM users WHERE id = $1";
 
 module.exports = {
   getUserByEmail,
@@ -56,6 +62,8 @@ module.exports = {
   deleteFavorite,
   addFavorite,
   getUserFavoritesCount,
-  getconfirmed_userStatus,
-  updateUserPointsQuery
+  updateUserPointsQuery,
+  getConfirmedUserStatus,
+  updateUserPassword,
+  insertPasswordReset,
 };
